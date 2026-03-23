@@ -16,7 +16,7 @@ interface YouTubeHotPageProps {
   }>;
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
 
 function resolveLocale(locale: string): Locale {
   if (!hasLocale(routing.locales, locale)) {

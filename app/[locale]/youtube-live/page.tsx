@@ -11,7 +11,7 @@ interface YouTubeLivePageProps {
   params: Promise<{ locale: string }>;
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 180;
 
 function resolveLocale(locale: string): Locale {
   if (!hasLocale(routing.locales, locale)) {
