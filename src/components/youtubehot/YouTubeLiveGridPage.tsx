@@ -213,6 +213,7 @@ export function YouTubeLiveGridPage({
       suppressHydrationWarning
       className="min-h-screen bg-gradient-to-b from-zinc-100 via-zinc-50 to-white pb-10 text-zinc-900 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:text-zinc-100"
     >
+      <h1 className="sr-only">{t.title}</h1>
       <section className="mx-auto w-full max-w-[1920px] lg:max-w-[80%] px-4 pt-2 md:px-6 md:pt-6">
         <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
           <CardHeader className="p-2 md:p-3">

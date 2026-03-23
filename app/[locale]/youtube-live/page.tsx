@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { YouTubeLiveGridPage } from '@/components/youtubehot/YouTubeLiveGridPage';
-import { type Locale, withLocalePrefix } from '@/i18n/config';
-import { getMessages } from '@/i18n/messages';
+import { type Locale } from '@/i18n/config';
 import { routing } from '@/i18n/routing';
 import { buildYouTubeLivePageData } from '@/lib/youtube-live/page-data';
+import { buildYouTubeLiveJsonLd, buildYouTubeLiveMetadata } from '@/lib/youtube-live/seo';
 
 interface YouTubeLivePageProps {
   params: Promise<{ locale: string }>;
@@ -24,28 +24,20 @@ function resolveLocale(locale: string): Locale {
 export async function generateMetadata({ params }: YouTubeLivePageProps): Promise<Metadata> {
   const { locale: requestedLocale } = await params;
   const locale = resolveLocale(requestedLocale);
-  const t = getMessages(locale).youtubeLive;
-  const canonical = withLocalePrefix('/youtube-live', locale);
-
-  return {
-    title: t.metadataTitle,
-    description: t.metadataDescription,
-    alternates: {
-      canonical,
-      languages: {
-        'zh-CN': '/zh/youtube-live',
-        en: '/en/youtube-live',
-        'x-default': '/en/youtube-live',
-      },
-    },
-  };
+  return buildYouTubeLiveMetadata(locale);
 }
 
 export default async function YouTubeLivePage({ params }: YouTubeLivePageProps) {
   const { locale: requestedLocale } = await params;
   const locale = resolveLocale(requestedLocale);
   const pageData = await buildYouTubeLivePageData(locale);
+  const jsonLd = buildYouTubeLiveJsonLd(locale, pageData.items);
 
-  return <YouTubeLiveGridPage {...pageData} />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <YouTubeLiveGridPage {...pageData} />
+    </>
+  );
 }
 
