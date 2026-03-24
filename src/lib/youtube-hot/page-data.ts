@@ -40,6 +40,7 @@ function hasCategory(categories: YouTubeCategory[], categoryId: string | null) {
 export interface YouTubeHotPageData {
   region: string;
   category: string;
+  userRegion?: string | null;
   page: number;
   pageSize: number;
   total: number;

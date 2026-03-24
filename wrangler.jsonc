@@ -5,7 +5,8 @@
   "compatibility_date": "2026-03-17",
   "compatibility_flags": [
     "nodejs_compat",
-    "nodejs_compat_populate_process_env"
+    "nodejs_compat_populate_process_env",
+    "no_handle_cross_request_promise_resolution"
   ],
   "main": "./worker/index.ts",
   "routes": [
@@ -26,13 +27,13 @@
     "enabled": false,
     "head_sampling_rate": 1,
     "logs": {
-      "enabled": true,
+      "enabled": false,
       "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true
     },
     "traces": {
-      "enabled": true,
+      "enabled": false,
       "persist": true,
       "head_sampling_rate": 1
     }

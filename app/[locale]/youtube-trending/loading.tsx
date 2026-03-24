@@ -1,6 +1,6 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { YouTubeFilterBarSkeleton } from '@/components/youtubehot/YouTubeFilterBarSkeleton';
+import { ChevronDown } from 'lucide-react';
+import { Card, CardHeader } from '@/components/ui/card';
+import { YouTubeHotVideoCard } from '@/components/youtubehot/YouTubeHotVideoCard';
 
 export default function YouTubeHotLoading() {
   const initialSkeletonCount = 20;
@@ -8,20 +8,25 @@ export default function YouTubeHotLoading() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-zinc-100 via-zinc-50 to-white pb-10 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       <section className="mx-auto w-full max-w-[1920px] lg:max-w-[80%] px-4 pt-6 md:px-6 md:pt-8">
-        <YouTubeFilterBarSkeleton />
-
+        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
+          <CardHeader className="p-2 md:p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
+                <div className="relative w-full sm:w-[260px] xl:w-[300px]">
+                  <div className="h-10 w-full rounded-md border border-zinc-300 bg-background px-3 pr-9 dark:border-zinc-700" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+                </div>
+                <div className="relative w-full sm:w-[260px] xl:w-[300px]">
+                  <div className="h-10 w-full rounded-md border border-zinc-300 bg-background px-3 pr-9 dark:border-zinc-700" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {Array.from({ length: initialSkeletonCount }).map((_, idx) => (
-            <Card key={idx} className="overflow-hidden border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-900/85">
-              <Skeleton className="aspect-video w-full rounded-none" />
-              <CardContent className="space-y-3 p-4">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-4/5" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardContent>
-            </Card>
+            <YouTubeHotVideoCard key={idx} loading />
           ))}
         </div>
       </section>

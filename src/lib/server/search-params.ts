@@ -7,6 +7,8 @@ export interface SearchParamsObject {
 export type SearchParamsLike = {
   get: (name: string) => string | null;
   getAll?: (name: string) => string[];
+  entries?: () => IterableIterator<[string, string]>;
+  toString?: () => string;
 };
 
 export type SearchParamsInput = SearchParamsObject | SearchParamsLike | null | undefined;
@@ -39,4 +41,36 @@ export function readSearchParamFirst(
 ): string | undefined {
   const raw = readSearchParamRaw(searchParams, key);
   return Array.isArray(raw) ? raw[0] : raw;
+}
+
+export function createURLSearchParams(searchParams: SearchParamsInput) {
+  if (!searchParams) {
+    return new URLSearchParams();
+  }
+
+  if (isSearchParamsLike(searchParams)) {
+    if (typeof searchParams.entries === 'function') {
+      return new URLSearchParams(Array.from(searchParams.entries()));
+    }
+
+    const serialized = typeof searchParams.toString === 'function' ? searchParams.toString() : '';
+    return new URLSearchParams(serialized);
+  }
+
+  const next = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        next.append(key, item);
+      }
+      continue;
+    }
+
+    if (typeof value === 'string') {
+      next.set(key, value);
+    }
+  }
+
+  return next;
 }

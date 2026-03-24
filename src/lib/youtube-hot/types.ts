@@ -6,6 +6,7 @@ export interface YouTubeRegion {
 export interface YouTubeCategory {
   categoryId: string;
   categoryTitle: string;
+  count?: number;
 }
 
 export interface YouTubeChannelStats {

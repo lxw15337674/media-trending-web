@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import {
   createContext,
   type InputHTMLAttributes,
@@ -22,9 +22,11 @@ export interface ComboboxOption {
 interface ComboboxContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
+  disabled: boolean;
   query: string;
   setQuery: (query: string) => void;
   selectedValue: string | null;
+  selectedLabel: string;
   filteredItems: unknown[];
   itemToValue: (item: unknown) => string;
   itemToLabel: (item: unknown) => string;
@@ -73,6 +75,7 @@ function defaultItemToKeywords(item: unknown) {
 interface ComboboxProps {
   items: readonly unknown[];
   value?: string | null;
+  disabled?: boolean;
   onValueChange?: (value: string, item: unknown) => void;
   itemToValue?: (item: unknown) => string;
   itemToLabel?: (item: unknown) => string;
@@ -84,6 +87,7 @@ interface ComboboxProps {
 export function Combobox({
   items,
   value,
+  disabled = false,
   onValueChange,
   itemToValue = defaultItemToValue,
   itemToLabel = defaultItemToLabel,
@@ -122,12 +126,19 @@ export function Combobox({
   }, [itemMap, itemToLabel, selectedValue]);
 
   useEffect(() => {
+    if (disabled) {
+      setOpen(false);
+    }
+  }, [disabled]);
+
+  useEffect(() => {
     if (!open) return;
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (!containerRef.current?.contains(target)) {
+        setQuery(selectedLabel);
         setOpen(false);
       }
     }
@@ -167,9 +178,11 @@ export function Combobox({
       value={{
         open,
         setOpen,
+        disabled,
         query,
         setQuery,
         selectedValue,
+        selectedLabel,
         filteredItems,
         itemToValue,
         itemToLabel,
@@ -183,22 +196,44 @@ export function Combobox({
   );
 }
 
-type ComboboxInputProps = InputHTMLAttributes<HTMLInputElement>;
+interface ComboboxInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  clearLabel?: string;
+}
 
-export function ComboboxInput({ className, onFocus, onKeyDown, onChange, ...props }: ComboboxInputProps) {
-  const { open, query, setQuery, setOpen, filteredItems, itemToValue, selectByValue } = useComboboxContext();
+export function ComboboxInput({
+  className,
+  clearLabel = 'Clear search',
+  onFocus,
+  onKeyDown,
+  onChange,
+  ...props
+}: ComboboxInputProps) {
+  const { open, disabled, query, setQuery, setOpen, selectedLabel, filteredItems, itemToValue, selectByValue } = useComboboxContext();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const displayValue = open ? query : query || selectedLabel;
+  const normalizedQuery = normalizeText(query);
+  const normalizedSelectedLabel = normalizeText(selectedLabel);
+  const showClearButton = open && !disabled && normalizedQuery;
 
   return (
     <div className="relative w-full">
       <input
         {...props}
-        value={query}
+        ref={inputRef}
+        value={displayValue}
+        disabled={disabled || props.disabled}
         onFocus={(event) => {
+          if (disabled) return;
+          if (!query && selectedLabel) {
+            setQuery(selectedLabel);
+          }
           setOpen(true);
           onFocus?.(event);
         }}
         onKeyDown={(event) => {
+          if (disabled) return;
           if (event.key === 'Escape') {
+            setQuery(selectedLabel);
             setOpen(false);
           } else if (event.key === 'Enter' && filteredItems.length > 0) {
             event.preventDefault();
@@ -207,16 +242,35 @@ export function ComboboxInput({ className, onFocus, onKeyDown, onChange, ...prop
           onKeyDown?.(event);
         }}
         onChange={(event) => {
+          if (disabled) return;
           setQuery(event.target.value);
           setOpen(true);
           onChange?.(event);
         }}
         className={cn(
-          'h-10 w-full rounded-md border border-zinc-300 bg-background px-3 pr-9 text-sm outline-none ring-offset-background',
-          'placeholder:text-zinc-500 focus:ring-2 focus:ring-ring focus:ring-offset-2 dark:border-zinc-700',
+          'h-10 w-full rounded-md border border-zinc-300 bg-background px-3 pr-16 text-sm outline-none ring-offset-background',
+          'placeholder:text-zinc-500 focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700',
           className,
         )}
       />
+      {showClearButton ? (
+        <button
+          type="button"
+          aria-label={clearLabel}
+          title={clearLabel}
+          className="absolute right-9 top-1/2 -translate-y-1/2 rounded-sm p-1 text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-zinc-400 dark:hover:text-zinc-100"
+          onMouseDown={(event) => {
+            event.preventDefault();
+          }}
+          onClick={() => {
+            setQuery('');
+            setOpen(true);
+            inputRef.current?.focus();
+          }}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
       <ChevronDown
         className={cn(
           'pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 transition-transform dark:text-zinc-400',
@@ -233,8 +287,8 @@ interface ComboboxContentProps {
 }
 
 export function ComboboxContent({ className, children }: ComboboxContentProps) {
-  const { open } = useComboboxContext();
-  if (!open) return null;
+  const { open, disabled } = useComboboxContext();
+  if (!open || disabled) return null;
 
   return (
     <div
@@ -277,7 +331,7 @@ interface ComboboxItemProps {
 }
 
 export function ComboboxItem({ value, className, children }: ComboboxItemProps) {
-  const { selectByValue, selectedValue } = useComboboxContext();
+  const { selectByValue, selectedValue, disabled } = useComboboxContext();
   const isSelected = selectedValue === value;
 
   return (
@@ -285,9 +339,10 @@ export function ComboboxItem({ value, className, children }: ComboboxItemProps) 
       type="button"
       className={cn(
         'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm',
-        'hover:bg-accent hover:text-accent-foreground',
+        'hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-60',
         className,
       )}
+      disabled={disabled}
       onClick={() => selectByValue(value)}
     >
       <Check className={cn('h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />

@@ -458,7 +458,7 @@ export async function getLatestPublishedBatch(): Promise<YouTubeHotLatestBatch |
   });
 }
 
-export async function listLatestYouTubeHotFilters(): Promise<YouTubeHotFilters> {
+export async function listLatestYouTubeHotFilters(region?: string | null): Promise<YouTubeHotFilters> {
   return withYouTubeHotReadRetry(async () => {
     const batch = await getLatestPublishedBatch();
     if (!batch) {
@@ -469,7 +469,8 @@ export async function listLatestYouTubeHotFilters(): Promise<YouTubeHotFilters> 
     }
 
     const visibleItemSql = buildVisibleYouTubeHotItemSql('i');
-    const [regions, categories] = await Promise.all([
+    const normalizedRegion = region?.trim().toUpperCase() || null;
+    const [regions, rawCategories] = await Promise.all([
       db.all<YouTubeRegion>(sql`
         SELECT
           s.region_code as regionCode,
@@ -483,14 +484,26 @@ export async function listLatestYouTubeHotFilters(): Promise<YouTubeHotFilters> 
       db.all<YouTubeCategory>(sql`
         SELECT
           i.category_id as categoryId,
-          MAX(i.category_title) as categoryTitle
+          MAX(i.category_title) as categoryTitle,
+          COUNT(*) as count
         FROM youtube_hot_hourly_items i
         JOIN youtube_hot_hourly_snapshots s ON s.id = i.snapshot_id
-        WHERE s.batch_id = ${batch.id} AND s.status = 'success' AND i.category_id IS NOT NULL AND ${visibleItemSql}
+        WHERE
+          s.batch_id = ${batch.id}
+          AND s.status = 'success'
+          AND i.category_id IS NOT NULL
+          AND ${visibleItemSql}
+          ${normalizedRegion ? sql`AND s.region_code = ${normalizedRegion}` : sql``}
         GROUP BY i.category_id
         ORDER BY CAST(i.category_id AS INTEGER) ASC
       `),
     ]);
+
+    const categories = rawCategories.map((item) => ({
+      categoryId: item.categoryId,
+      categoryTitle: item.categoryTitle,
+      count: toNumber(item.count, 0),
+    }));
 
     return {
       regions,

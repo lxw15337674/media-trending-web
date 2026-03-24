@@ -13,17 +13,22 @@ import {
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu';
 import { cn } from '@/lib/utils';
-import { localeFromPathname, stripLocalePrefix, withLocalePrefix } from '@/i18n/config';
+import { type Locale, localeFromPathname, stripLocalePrefix, withLocalePrefix } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 
 function isLocaleSwitchablePath(barePath: string) {
   return barePath === '/youtube-trending' || barePath === '/youtube-live';
 }
 
-export function SiteHeaderContent() {
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const locale = localeFromPathname(pathname);
+function SiteHeaderFrame({
+  locale,
+  pathname,
+  switchQuery = '',
+}: {
+  locale: Locale;
+  pathname?: string | null;
+  switchQuery?: string;
+}) {
   const messages = getMessages(locale);
   const barePath = stripLocalePrefix(pathname ?? '/');
   const targetLocale = locale === 'zh' ? 'en' : 'zh';
@@ -32,15 +37,11 @@ export function SiteHeaderContent() {
     { href: withLocalePrefix('/youtube-live', locale), label: messages.common.navYouTubeLive },
   ];
 
-  const switchPath = isLocaleSwitchablePath(barePath)
+  const switchablePath = pathname ? isLocaleSwitchablePath(barePath) : false;
+  const switchPath = switchablePath
     ? withLocalePrefix(barePath, targetLocale)
-    : withLocalePrefix('/youtube-live', targetLocale);
-  const switchQuery = isLocaleSwitchablePath(barePath) ? params.toString() : '';
-  const switchHref = switchQuery ? `${switchPath}?${switchQuery}` : switchPath;
-
-  useEffect(() => {
-    document.cookie = `lang=${locale}; path=/; max-age=${60 * 60 * 24 * 180}; samesite=lax`;
-  }, [locale]);
+    : withLocalePrefix('/youtube-trending', targetLocale);
+  const switchHref = switchablePath && switchQuery ? `${switchPath}?${switchQuery}` : switchPath;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,7 +49,7 @@ export function SiteHeaderContent() {
         <NavigationMenu className="max-w-none justify-start">
           <NavigationMenuList>
             {siteNav.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+              const isActive = !!pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`));
               return (
                 <NavigationMenuItem key={item.href}>
                   <NavigationMenuLink asChild>
@@ -89,10 +90,22 @@ export function SiteHeaderContent() {
   );
 }
 
-export function SiteHeader() {
+function SiteHeaderContent({ initialLocale }: { initialLocale: Locale }) {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const locale = pathname ? localeFromPathname(pathname) : initialLocale;
+
+  useEffect(() => {
+    document.cookie = `lang=${locale}; path=/; max-age=${60 * 60 * 24 * 180}; samesite=lax`;
+  }, [locale]);
+
+  return <SiteHeaderFrame locale={locale} pathname={pathname} switchQuery={params.toString()} />;
+}
+
+export function SiteHeader({ locale }: { locale: Locale }) {
   return (
-    <Suspense fallback={null}>
-      <SiteHeaderContent />
+    <Suspense fallback={<SiteHeaderFrame locale={locale} />}>
+      <SiteHeaderContent initialLocale={locale} />
     </Suspense>
   );
 }

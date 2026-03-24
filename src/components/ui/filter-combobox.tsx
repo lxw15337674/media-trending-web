@@ -15,6 +15,8 @@ interface FilterComboboxProps {
   value: string;
   placeholder: string;
   emptyText: string;
+  clearLabel?: string;
+  disabled?: boolean;
   onValueChange: (value: string) => void;
 }
 
@@ -23,11 +25,13 @@ export function FilterCombobox({
   value,
   placeholder,
   emptyText,
+  clearLabel,
+  disabled = false,
   onValueChange,
 }: FilterComboboxProps) {
   return (
-    <Combobox items={options} value={value} onValueChange={(nextValue) => onValueChange(nextValue)}>
-      <ComboboxInput placeholder={placeholder} />
+    <Combobox items={options} value={value} disabled={disabled} onValueChange={(nextValue) => onValueChange(nextValue)}>
+      <ComboboxInput placeholder={placeholder} clearLabel={clearLabel} disabled={disabled} />
       <ComboboxContent>
         <ComboboxEmpty>{emptyText}</ComboboxEmpty>
         <ComboboxList>

@@ -43,7 +43,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     <html lang={locale === 'zh' ? 'zh-CN' : 'en'} suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <AppShellHeader />
+          <AppShellHeader locale={locale} />
           {children}
         </ThemeProvider>
       </body>
