@@ -1,16 +1,10 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { SiteHeader } from '@/components/SiteHeader';
+import type { Locale } from '@/i18n/config';
 
-export function AppShellHeader() {
-  const [mounted, setMounted] = useState(false);
+interface AppShellHeaderProps {
+  locale: Locale;
+}
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
-  return <SiteHeader />;
+export function AppShellHeader({ locale }: AppShellHeaderProps) {
+  return <SiteHeader locale={locale} />;
 }

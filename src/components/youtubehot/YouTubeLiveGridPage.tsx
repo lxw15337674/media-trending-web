@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useEffect, useMemo, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
 import { FilterCombobox } from '@/components/ui/filter-combobox';
@@ -52,12 +52,35 @@ export function YouTubeLiveGridPage({
 }: YouTubeLiveGridPageProps) {
   const t = getMessages(locale).youtubeLive;
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [requestedLanguage, setRequestedLanguage] = useState(() => normalizeFilterValue(searchParams.get('language')));
+  const [requestedCategory, setRequestedCategory] = useState(() => normalizeFilterValue(searchParams.get('category')));
 
   useEffect(() => {
     setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const nextLanguage = normalizeFilterValue(searchParams.get('language'));
+    const nextCategory = normalizeFilterValue(searchParams.get('category'));
+    setRequestedLanguage((current) => (current === nextLanguage ? current : nextLanguage));
+    setRequestedCategory((current) => (current === nextCategory ? current : nextCategory));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncFromLocation = () => {
+      const params = new URLSearchParams(window.location.search);
+      setRequestedLanguage(normalizeFilterValue(params.get('language')));
+      setRequestedCategory(normalizeFilterValue(params.get('category')));
+    };
+
+    window.addEventListener('popstate', syncFromLocation);
+    return () => {
+      window.removeEventListener('popstate', syncFromLocation);
+    };
   }, []);
 
   const formatLanguageLabel = useMemo(() => {
@@ -111,9 +134,6 @@ export function YouTubeLiveGridPage({
     return (item: Pick<YouTubeLiveItem, 'categoryId' | 'categoryTitle'>) =>
       getYouTubeCategoryLabel(item.categoryId, item.categoryTitle, locale);
   }, [locale]);
-
-  const languageFilter = normalizeFilterValue(searchParams.get('language'));
-  const categoryFilter = normalizeFilterValue(searchParams.get('category'));
 
   const languageOptions = useMemo(() => {
     const counter = new Map<string, number>();
@@ -180,25 +200,35 @@ export function YouTubeLiveGridPage({
     [categoryOptions, formatCategoryLabel, t.allCategories],
   );
 
-  const activeLanguageFilter = languageFilterOptions.some((option) => option.value === languageFilter)
-    ? languageFilter
+  const activeLanguageFilter = languageFilterOptions.some((option) => option.value === requestedLanguage)
+    ? requestedLanguage
     : 'all';
-  const activeCategoryFilter = categoryFilterOptions.some((option) => option.value === categoryFilter)
-    ? categoryFilter
+  const activeCategoryFilter = categoryFilterOptions.some((option) => option.value === requestedCategory)
+    ? requestedCategory
     : 'all';
 
   const updateFilter = (key: 'language' | 'category', value: string) => {
-    const next = new URLSearchParams(searchParams.toString());
+    const currentSearch = typeof window !== 'undefined' ? window.location.search : searchParams.toString();
+    const next = new URLSearchParams(currentSearch);
     if (value === 'all') {
       next.delete(key);
     } else {
       next.set(key, value);
     }
 
-    const query = next.toString();
-    startTransition(() => {
-      router.replace(query ? `${pathname}?${query}` : pathname);
-    });
+    const nextQuery = next.toString();
+    const currentQuery = currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch;
+    if (nextQuery === currentQuery) return;
+
+    const nextLanguage = normalizeFilterValue(next.get('language'));
+    const nextCategory = normalizeFilterValue(next.get('category'));
+    setRequestedLanguage(nextLanguage);
+    setRequestedCategory(nextCategory);
+
+    if (typeof window !== 'undefined') {
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      window.history.replaceState(window.history.state, '', nextUrl);
+    }
   };
 
   const filteredItems = useMemo(() => {
@@ -229,6 +259,7 @@ export function YouTubeLiveGridPage({
                     value={activeLanguageFilter}
                     placeholder={t.filterLanguageSearchPlaceholder}
                     emptyText={t.filterNoMatch}
+                    clearLabel={t.clearSearch}
                     onValueChange={(nextValue) => updateFilter('language', nextValue)}
                   />
                 </div>
@@ -238,6 +269,7 @@ export function YouTubeLiveGridPage({
                     value={activeCategoryFilter}
                     placeholder={t.filterCategorySearchPlaceholder}
                     emptyText={t.filterNoMatch}
+                    clearLabel={t.clearSearch}
                     onValueChange={(nextValue) => updateFilter('category', nextValue)}
                   />
                 </div>

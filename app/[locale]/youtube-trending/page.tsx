@@ -6,13 +6,10 @@ import { YouTubeHotGridPage } from '@/components/youtubehot/YouTubeHotGridPage';
 import { type Locale } from '@/i18n/config';
 import { routing } from '@/i18n/routing';
 import { getRequestCountryCode } from '@/lib/server/request-country';
-import type { SearchParamsInput } from '@/lib/server/search-params';
-import { buildYouTubeHotPageData } from '@/lib/youtube-hot/page-data';
 import { buildYouTubeHotJsonLd, buildYouTubeHotMetadata } from '@/lib/youtube-hot/seo';
 
 interface YouTubeHotPageProps {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<SearchParamsInput>;
 }
 
 export const dynamic = 'force-dynamic';
@@ -31,17 +28,11 @@ export async function generateMetadata({ params }: Pick<YouTubeHotPageProps, 'pa
   return buildYouTubeHotMetadata(locale);
 }
 
-export default async function YouTubeHotPage({ params, searchParams }: YouTubeHotPageProps) {
-  const [{ locale: requestedLocale }, resolvedSearchParams, requestHeaders] = await Promise.all([params, searchParams, headers()]);
+export default async function YouTubeHotPage({ params }: YouTubeHotPageProps) {
+  const [{ locale: requestedLocale }, requestHeaders] = await Promise.all([params, headers()]);
   const locale = resolveLocale(requestedLocale);
-  const detectedCountryCode = getRequestCountryCode(requestHeaders);
+  const userRegion = getRequestCountryCode(requestHeaders);
+  const jsonLd = buildYouTubeHotJsonLd(locale, []);
 
-  const pageData = await buildYouTubeHotPageData(resolvedSearchParams, locale);
-  const jsonLd = buildYouTubeHotJsonLd(locale, pageData.items);
-  const userRegion =
-    detectedCountryCode && pageData.regions.some((item) => item.regionCode === detectedCountryCode)
-      ? detectedCountryCode
-      : null;
-
-  return <YouTubeHotGridPage {...pageData} userRegion={userRegion} jsonLd={jsonLd} />;
+  return <YouTubeHotGridPage locale={locale} userRegion={userRegion} jsonLd={jsonLd} />;
 }
