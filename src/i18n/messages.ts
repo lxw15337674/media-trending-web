@@ -4,7 +4,9 @@ const messages = {
   zh: {
     common: {
       navYouTubeHot: 'YouTube视频榜',
+      navYouTubeHotShort: '视频榜',
       navYouTubeLive: 'YouTube直播榜',
+      navYouTubeLiveShort: '直播榜',
       switchLanguage: 'English',
     },
     youtubeHot: {
@@ -70,7 +72,9 @@ const messages = {
   en: {
     common: {
       navYouTubeHot: 'YouTube Videos',
+      navYouTubeHotShort: 'Videos',
       navYouTubeLive: 'YouTube Live',
+      navYouTubeLiveShort: 'Live',
       switchLanguage: '中文',
     },
     youtubeHot: {
