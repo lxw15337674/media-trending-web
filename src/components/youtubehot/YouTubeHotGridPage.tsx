@@ -53,10 +53,22 @@ function buildRegionOptions(
   regions: YouTubeRegion[],
   t: ReturnType<typeof getMessages>['youtubeHot'],
   formatRegionLabel: (region: YouTubeRegion) => string,
+  userRegion: string | null | undefined,
 ) {
+  const sortedRegions = !userRegion
+    ? regions
+    : (() => {
+        const targetIndex = regions.findIndex((item) => item.regionCode === userRegion);
+        if (targetIndex <= 0) {
+          return regions;
+        }
+
+        return [regions[targetIndex], ...regions.slice(0, targetIndex), ...regions.slice(targetIndex + 1)];
+      })();
+
   return [
     { value: 'all', label: t.allRegions },
-    ...regions.map((item) => {
+    ...sortedRegions.map((item) => {
       const localizedLabel = formatRegionLabel(item);
       return {
         value: item.regionCode,
@@ -88,6 +100,7 @@ function buildCategoryOptions(
 export function YouTubeHotGridPage({
   region,
   category,
+  userRegion,
   page,
   pageSize,
   total,
@@ -124,7 +137,10 @@ export function YouTubeHotGridPage({
     };
   }, [isHydrated, locale]);
 
-  const regionOptions = useMemo(() => buildRegionOptions(regions, t, formatRegionLabel), [regions, t, formatRegionLabel]);
+  const regionOptions = useMemo(
+    () => buildRegionOptions(regions, t, formatRegionLabel, userRegion),
+    [regions, t, formatRegionLabel, userRegion],
+  );
   const categoryOptions = useMemo(() => buildCategoryOptions(categories, t, locale), [categories, t, locale]);
 
   const [loadedItems, setLoadedItems] = useState(items);

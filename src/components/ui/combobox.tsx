@@ -25,6 +25,7 @@ interface ComboboxContextValue {
   query: string;
   setQuery: (query: string) => void;
   selectedValue: string | null;
+  selectedLabel: string;
   filteredItems: unknown[];
   itemToValue: (item: unknown) => string;
   itemToLabel: (item: unknown) => string;
@@ -128,6 +129,7 @@ export function Combobox({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (!containerRef.current?.contains(target)) {
+        setQuery(selectedLabel);
         setOpen(false);
       }
     }
@@ -170,6 +172,7 @@ export function Combobox({
         query,
         setQuery,
         selectedValue,
+        selectedLabel,
         filteredItems,
         itemToValue,
         itemToLabel,
@@ -186,19 +189,24 @@ export function Combobox({
 type ComboboxInputProps = InputHTMLAttributes<HTMLInputElement>;
 
 export function ComboboxInput({ className, onFocus, onKeyDown, onChange, ...props }: ComboboxInputProps) {
-  const { open, query, setQuery, setOpen, filteredItems, itemToValue, selectByValue } = useComboboxContext();
+  const { open, query, setQuery, setOpen, selectedLabel, filteredItems, itemToValue, selectByValue } = useComboboxContext();
+  const displayValue = open ? query : query || selectedLabel;
 
   return (
     <div className="relative w-full">
       <input
         {...props}
-        value={query}
+        value={displayValue}
         onFocus={(event) => {
+          if (!query && selectedLabel) {
+            setQuery(selectedLabel);
+          }
           setOpen(true);
           onFocus?.(event);
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
+            setQuery(selectedLabel);
             setOpen(false);
           } else if (event.key === 'Enter' && filteredItems.length > 0) {
             event.preventDefault();
