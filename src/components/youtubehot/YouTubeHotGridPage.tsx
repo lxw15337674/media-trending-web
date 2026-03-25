@@ -1,7 +1,7 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
-import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,7 +11,29 @@ import { YouTubeHotVideoCard } from '@/components/youtubehot/YouTubeHotVideoCard
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 import { createRegionDisplayNames, getLocalizedYouTubeRegionLabel, getYouTubeCategoryLabel } from '@/lib/youtube-hot/labels';
-import type { YouTubeCategory, YouTubeHotQueryItem, YouTubeRegion } from '@/lib/youtube-hot/types';
+import {
+  getAvailableYouTubeHotSorts,
+  normalizeYouTubeHotSort,
+  type YouTubeCategory,
+  type YouTubeHotQueryItem,
+  type YouTubeHotSort,
+  type YouTubeRegion,
+} from '@/lib/youtube-hot/types';
+
+interface YouTubeHotInitialData {
+  region: string;
+  category: string;
+  sort: YouTubeHotSort;
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  items: YouTubeHotQueryItem[];
+  regions: YouTubeRegion[];
+  categories: YouTubeCategory[];
+  generatedAt: string;
+  errorMessage?: string | null;
+}
 
 interface YouTubeHotHistoryResponse {
   batch: {
@@ -40,6 +62,7 @@ interface YouTubeHotGridPageProps {
   locale: Locale;
   userRegion?: string | null;
   jsonLd?: unknown;
+  initialData: YouTubeHotInitialData;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -111,6 +134,11 @@ function normalizeFilterValue(value: string | null | undefined) {
   return normalized ? normalized : 'all';
 }
 
+function toRegionContext(region: string | null | undefined) {
+  const normalized = normalizeFilterValue(region);
+  return normalized === 'all' ? null : normalized;
+}
+
 function buildRegionOptions(
   regions: YouTubeRegion[],
   t: ReturnType<typeof getMessages>['youtubeHot'],
@@ -160,33 +188,53 @@ function buildCategoryOptions(
   ] satisfies ComboboxOption[];
 }
 
-export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGridPageProps) {
+function buildSortOptions(t: ReturnType<typeof getMessages>['youtubeHot'], region: string | null) {
+  const labels: Record<YouTubeHotSort, string> = {
+    rank_asc: t.sortRank,
+    region_coverage_desc: t.sortRegionCoverage,
+    views_desc: t.sortViews,
+    published_newest: t.sortPublishedNewest,
+  };
+
+  return getAvailableYouTubeHotSorts(region).map((sort) => ({
+    value: sort,
+    label: labels[sort],
+    keywords: [labels[sort], sort],
+  })) satisfies ComboboxOption[];
+}
+
+export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: YouTubeHotGridPageProps) {
   const t = getMessages(locale).youtubeHot;
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [requestedRegion, setRequestedRegion] = useState(() => normalizeFilterValue(searchParams.get('region')));
-  const [requestedCategory, setRequestedCategory] = useState(() => normalizeFilterValue(searchParams.get('category')));
   const [isHydrated, setIsHydrated] = useState(false);
-  const initialCachedFilters = cachedFiltersByRegion.get(requestedRegion === 'all' ? 'all' : requestedRegion);
-  const [regions, setRegions] = useState<YouTubeRegion[]>(initialCachedFilters?.regions ?? []);
-  const [categories, setCategories] = useState<YouTubeCategory[]>(initialCachedFilters?.categories ?? []);
-  const [items, setItems] = useState<YouTubeHotQueryItem[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
-  const [filtersLoading, setFiltersLoading] = useState(!initialCachedFilters);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [regions, setRegions] = useState<YouTubeRegion[]>(initialData.regions);
+  const [categories, setCategories] = useState<YouTubeCategory[]>(initialData.categories);
+  const [filtersRegion, setFiltersRegion] = useState(initialData.region);
+  const [items, setItems] = useState<YouTubeHotQueryItem[]>(initialData.items);
+  const [page, setPage] = useState(initialData.page);
+  const [pageSize, setPageSize] = useState(initialData.pageSize || DEFAULT_PAGE_SIZE);
+  const [total, setTotal] = useState(initialData.total);
+  const [totalPages, setTotalPages] = useState(initialData.totalPages);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(initialData.generatedAt ?? null);
+  const [filtersLoading, setFiltersLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(initialData.errorMessage ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const requestIdRef = useRef(0);
-  const filtersReadyRef = useRef(false);
-  const loadedPageRef = useRef(1);
-  const loadedTotalPagesRef = useRef(0);
+  const filtersReadyRef = useRef(true);
+  const loadedPageRef = useRef(initialData.page);
+  const loadedTotalPagesRef = useRef(initialData.totalPages);
   const isLoadingMoreRef = useRef(false);
+  const latestQueryKeyRef = useRef(
+    `${initialData.region}|${initialData.category}|${initialData.sort}|${initialData.pageSize || DEFAULT_PAGE_SIZE}`,
+  );
+  const skipFetchQueryRef = useRef<string | null>(
+    `${initialData.region}|${initialData.category}|${initialData.sort}|${initialData.pageSize || DEFAULT_PAGE_SIZE}`,
+  );
   const loadNextPageRef = useRef<() => Promise<void>>(async () => {});
   const { ref: sentinelRef, inView } = useInView({
     rootMargin: '320px 0px',
@@ -197,32 +245,53 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     setIsHydrated(true);
   }, []);
 
-  useEffect(() => {
-    const nextRegion = normalizeFilterValue(searchParams.get('region'));
-    const nextCategory = normalizeFilterValue(searchParams.get('category'));
-    setRequestedRegion((current) => (current === nextRegion ? current : nextRegion));
-    setRequestedCategory((current) => (current === nextCategory ? current : nextCategory));
-  }, [searchParams]);
+  const requestedRegion = normalizeFilterValue(searchParams.get('region') ?? initialData.region);
+  const requestedCategory = normalizeFilterValue(searchParams.get('category') ?? initialData.category);
+  const requestedSort = normalizeYouTubeHotSort(
+    searchParams.get('sort') ?? initialData.sort,
+    toRegionContext(requestedRegion),
+  );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const cacheKey = initialData.region === 'all' ? 'all' : initialData.region;
+    cachedFiltersByRegion.set(cacheKey, {
+      regions: initialData.regions,
+      categories: initialData.categories,
+    });
 
-    const syncFromLocation = () => {
-      const params = new URLSearchParams(window.location.search);
-      setDataLoading(true);
-      setRequestedRegion(normalizeFilterValue(params.get('region')));
-      setRequestedCategory(normalizeFilterValue(params.get('category')));
-    };
+    requestIdRef.current += 1;
+    filtersReadyRef.current = true;
+    loadedPageRef.current = initialData.page;
+    loadedTotalPagesRef.current = initialData.totalPages;
+    isLoadingMoreRef.current = false;
+    latestQueryKeyRef.current =
+      `${initialData.region}|${initialData.category}|${initialData.sort}|${initialData.pageSize || DEFAULT_PAGE_SIZE}`;
+    skipFetchQueryRef.current = `${initialData.region}|${initialData.category}|${initialData.sort}|${initialData.pageSize || DEFAULT_PAGE_SIZE}`;
 
-    window.addEventListener('popstate', syncFromLocation);
-    return () => {
-      window.removeEventListener('popstate', syncFromLocation);
-    };
-  }, []);
+    setRegions(initialData.regions);
+    setCategories(initialData.categories);
+    setFiltersRegion(initialData.region);
+    setItems(initialData.items);
+    setPage(initialData.page);
+    setPageSize(initialData.pageSize || DEFAULT_PAGE_SIZE);
+    setTotal(initialData.total);
+    setTotalPages(initialData.totalPages);
+    setGeneratedAt(initialData.generatedAt ?? null);
+    setFiltersLoading(false);
+    setDataLoading(false);
+    setIsLoadingMore(false);
+    setErrorMessage(initialData.errorMessage ?? null);
+    setLoadError(null);
+  }, [initialData]);
 
   const activeRegion = regions.some((item) => item.regionCode === requestedRegion) ? requestedRegion : 'all';
   const activeCategory = categories.some((item) => item.categoryId === requestedCategory) ? requestedCategory : 'all';
-  const queryKey = `${activeRegion}|${activeCategory}|${pageSize}`;
+  const activeSort = normalizeYouTubeHotSort(requestedSort, toRegionContext(activeRegion));
+  const queryKey = `${activeRegion}|${activeCategory}|${activeSort}|${pageSize}`;
+
+  useEffect(() => {
+    latestQueryKeyRef.current = queryKey;
+  }, [queryKey]);
 
   const formatRegionLabel = useMemo(() => {
     const regionDisplayNames = isHydrated ? createRegionDisplayNames(locale) : null;
@@ -242,6 +311,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     [regions, t, formatRegionLabel, userRegion],
   );
   const categoryOptions = useMemo(() => buildCategoryOptions(categories, t, locale), [categories, t, locale]);
+  const sortOptions = useMemo(() => buildSortOptions(t, toRegionContext(activeRegion)), [activeRegion, t]);
   const loadMoreSkeletonCount = Math.min(pageSize, Math.max(total - items.length, 0));
 
   useEffect(() => {
@@ -249,6 +319,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
 
     async function loadFilters() {
       const regionKey = requestedRegion === 'all' ? 'all' : requestedRegion;
+      filtersReadyRef.current = false;
       setFiltersLoading(!cachedFiltersByRegion.get(regionKey));
       setErrorMessage(null);
 
@@ -257,12 +328,11 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
         if (cancelled) return;
         setRegions(nextFilters.regions);
         setCategories(nextFilters.categories);
+        setFiltersRegion(requestedRegion);
         filtersReadyRef.current = true;
       } catch (error) {
         if (cancelled) return;
         setErrorMessage(error instanceof Error ? error.message : t.errorLoad);
-        setRegions([]);
-        setCategories([]);
         filtersReadyRef.current = false;
       } finally {
         if (!cancelled) {
@@ -280,23 +350,28 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
 
   useEffect(() => {
     if (filtersLoading) return;
+    if (filtersRegion !== requestedRegion) return;
     if (requestedCategory === 'all') return;
     if (categories.some((item) => item.categoryId === requestedCategory)) return;
 
     updateQuery({ category: 'all', page: '1' });
-  }, [categories, filtersLoading, requestedCategory]);
+  }, [categories, filtersLoading, filtersRegion, requestedCategory, requestedRegion, updateQuery]);
 
   useEffect(() => {
     if (filtersLoading) return;
+    if (filtersRegion !== requestedRegion) {
+      setDataLoading(false);
+      return;
+    }
     if (!filtersReadyRef.current) {
       setDataLoading(false);
-      setItems([]);
-      setPage(1);
-      setTotal(0);
-      setTotalPages(0);
-      setGeneratedAt(null);
-      loadedPageRef.current = 1;
-      loadedTotalPagesRef.current = 0;
+      return;
+    }
+
+    if (skipFetchQueryRef.current === queryKey) {
+      skipFetchQueryRef.current = null;
+      setDataLoading(false);
+      setLoadError(null);
       return;
     }
 
@@ -310,6 +385,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     if (activeCategory !== 'all') {
       params.set('category', activeCategory);
     }
+    params.set('sort', activeSort);
     params.set('page', '1');
     params.set('pageSize', String(pageSize));
 
@@ -343,11 +419,6 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
         loadedTotalPagesRef.current = payload.pagination.totalPages;
       } catch (error) {
         if (controller.signal.aborted || requestIdRef.current !== requestId) return;
-        setItems([]);
-        setPage(1);
-        setTotal(0);
-        setTotalPages(0);
-        setGeneratedAt(null);
         setLoadError(error instanceof Error ? error.message : t.errorLoad);
       } finally {
         if (!controller.signal.aborted && requestIdRef.current === requestId) {
@@ -361,7 +432,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     return () => {
       controller.abort();
     };
-  }, [activeCategory, activeRegion, filtersLoading, pageSize, queryKey, t.errorLoad]);
+  }, [activeCategory, activeRegion, activeSort, filtersLoading, filtersRegion, pageSize, queryKey, requestedRegion, t.errorLoad]);
 
   loadNextPageRef.current = async () => {
     if (dataLoading || isLoadingMoreRef.current) return;
@@ -377,6 +448,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     if (activeCategory !== 'all') {
       params.set('category', activeCategory);
     }
+    params.set('sort', activeSort);
     params.set('page', String(nextPage));
     params.set('pageSize', String(pageSize));
 
@@ -398,7 +470,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
         throw new Error(t.loadMoreFailed);
       }
 
-      if (activeQueryKey !== `${activeRegion}|${activeCategory}|${pageSize}`) return;
+      if (activeQueryKey !== latestQueryKeyRef.current) return;
 
       setItems((current) => mergeItems(current, payload.data ?? []));
       setPage(payload.pagination.page);
@@ -425,8 +497,8 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     void loadNextPageRef.current();
   }, [dataLoading, filtersLoading, inView, isLoadingMore, loadError, page, totalPages]);
 
-  const updateQuery = (patch: Partial<Record<'region' | 'category' | 'page', string>>) => {
-    const currentSearch = typeof window !== 'undefined' ? window.location.search : searchParams.toString();
+  const updateQuery = useCallback((patch: Partial<Record<'region' | 'category' | 'sort' | 'page', string>>) => {
+    const currentSearch = searchParams.toString();
     const next = new URLSearchParams(currentSearch);
 
     for (const [key, value] of Object.entries(patch)) {
@@ -438,31 +510,27 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
     }
 
     const nextQuery = next.toString();
-    const currentQuery = currentSearch.startsWith('?') ? currentSearch.slice(1) : currentSearch;
-    if (nextQuery === currentQuery) return;
+    if (nextQuery === currentSearch) return;
 
     setLoadError(null);
     setDataLoading(true);
     startTransition(() => {
-      const nextRegion = normalizeFilterValue(next.get('region'));
-      const nextCategory = normalizeFilterValue(next.get('category'));
-
-      setRequestedRegion(nextRegion);
-      setRequestedCategory(nextCategory);
-
-      if (typeof window !== 'undefined') {
-        const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
-        window.history.replaceState(window.history.state, '', nextUrl);
-      }
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      router.replace(nextUrl, { scroll: false });
     });
-  };
+  }, [pathname, router, searchParams]);
 
   const onRegionChange = (value: string) => {
-    updateQuery({ region: value, page: '1' });
+    const nextSort = normalizeYouTubeHotSort(requestedSort, toRegionContext(value));
+    updateQuery({ region: value, sort: nextSort, page: '1' });
   };
 
   const onCategoryChange = (value: string) => {
     updateQuery({ category: value, page: '1' });
+  };
+
+  const onSortChange = (value: string) => {
+    updateQuery({ sort: value, page: '1' });
   };
 
   const showCardSkeleton = dataLoading;
@@ -499,6 +567,17 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd }: YouTubeHotGri
                     emptyText={t.filterNoMatch}
                     clearLabel={t.clearSearch}
                     onValueChange={onCategoryChange}
+                  />
+                </div>
+
+                <div className="w-full sm:w-[260px] xl:w-[300px]">
+                  <FilterCombobox
+                    options={sortOptions}
+                    value={activeSort}
+                    placeholder={t.filterSortSearchPlaceholder}
+                    emptyText={t.filterNoMatch}
+                    clearLabel={t.clearSearch}
+                    onValueChange={onSortChange}
                   />
                 </div>
               </div>

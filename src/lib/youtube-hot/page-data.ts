@@ -6,7 +6,14 @@ import {
   listLatestYouTubeHotFilters,
   queryLatestYouTubeHot,
 } from '@/lib/youtube-hot/db';
-import type { YouTubeCategory, YouTubeHotQueryItem, YouTubeRegion } from '@/lib/youtube-hot/types';
+import {
+  getDefaultYouTubeHotSort,
+  normalizeYouTubeHotSort,
+  type YouTubeCategory,
+  type YouTubeHotQueryItem,
+  type YouTubeHotSort,
+  type YouTubeRegion,
+} from '@/lib/youtube-hot/types';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -40,6 +47,7 @@ function hasCategory(categories: YouTubeCategory[], categoryId: string | null) {
 export interface YouTubeHotPageData {
   region: string;
   category: string;
+  sort: YouTubeHotSort;
   userRegion?: string | null;
   page: number;
   pageSize: number;
@@ -67,6 +75,7 @@ export async function buildYouTubeHotPageData(
       return {
         region: 'all',
         category: 'all',
+        sort: getDefaultYouTubeHotSort(),
         page: 1,
         pageSize: DEFAULT_PAGE_SIZE,
         total: 0,
@@ -86,10 +95,12 @@ export async function buildYouTubeHotPageData(
 
     const region = hasRegion(filters.regions, requestedRegion) ? requestedRegion : null;
     const category = hasCategory(filters.categories, requestedCategory) ? requestedCategory : null;
+    const sort = normalizeYouTubeHotSort(readSearchParamRaw(searchParams, 'sort'), region);
 
     const result = await queryLatestYouTubeHot({
       region,
       category,
+      sort,
       page,
       pageSize: DEFAULT_PAGE_SIZE,
     });
@@ -97,6 +108,7 @@ export async function buildYouTubeHotPageData(
     return {
       region: region ?? 'all',
       category: category ?? 'all',
+      sort,
       page: result.page,
       pageSize: result.pageSize,
       total: result.total,
@@ -122,6 +134,7 @@ export async function buildYouTubeHotPageData(
     return {
       region: 'all',
       category: 'all',
+      sort: getDefaultYouTubeHotSort(),
       page: 1,
       pageSize: DEFAULT_PAGE_SIZE,
       total: 0,

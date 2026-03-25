@@ -8,7 +8,9 @@ import {
   type YouTubeHotQueryParams,
   type YouTubeHotQueryResult,
   type YouTubeHotRegionResult,
+  type YouTubeHotSort,
   type YouTubeRegion,
+  normalizeYouTubeHotSort,
 } from './types';
 
 interface BatchIdRow {
@@ -134,6 +136,75 @@ function buildVisibleYouTubeHotItemSql(itemAlias: string) {
       OR ${sql.raw(`${itemAlias}.channel_avatar_url`)} IS NOT NULL
     )
   )`;
+}
+
+function buildYouTubeHotOrderBySql(sort: YouTubeHotSort, shouldAggregateGlobal: boolean) {
+  if (shouldAggregateGlobal) {
+    switch (sort) {
+      case 'rank_asc':
+        return sql`
+          ORDER BY
+            aggregateBestRank ASC,
+            aggregateRegionCount DESC,
+            aggregateScore DESC,
+            COALESCE(MAX(i.view_count), 0) DESC,
+            i.video_id ASC
+        `;
+      case 'views_desc':
+        return sql`
+          ORDER BY
+            COALESCE(MAX(i.view_count), 0) DESC,
+            aggregateRegionCount DESC,
+            aggregateScore DESC,
+            aggregateBestRank ASC,
+            i.video_id ASC
+        `;
+      case 'published_newest':
+        return sql`
+          ORDER BY
+            COALESCE(MAX(i.published_at), '') DESC,
+            aggregateRegionCount DESC,
+            aggregateScore DESC,
+            aggregateBestRank ASC,
+            i.video_id ASC
+        `;
+      case 'region_coverage_desc':
+      default:
+        return sql`
+          ORDER BY
+            aggregateRegionCount DESC,
+            aggregateScore DESC,
+            aggregateBestRank ASC,
+            COALESCE(MAX(i.view_count), 0) DESC,
+            i.video_id ASC
+        `;
+    }
+  }
+
+  switch (sort) {
+    case 'views_desc':
+      return sql`
+        ORDER BY
+          COALESCE(i.view_count, 0) DESC,
+          i.rank ASC,
+          i.video_id ASC
+      `;
+    case 'published_newest':
+      return sql`
+        ORDER BY
+          COALESCE(i.published_at, '') DESC,
+          i.rank ASC,
+          i.video_id ASC
+      `;
+    case 'rank_asc':
+    case 'region_coverage_desc':
+    default:
+      return sql`
+        ORDER BY
+          i.rank ASC,
+          i.video_id ASC
+      `;
+  }
 }
 
 function getErrorText(error: unknown) {
@@ -518,6 +589,7 @@ export async function queryLatestYouTubeHot(params: YouTubeHotQueryParams): Prom
   const normalizedRegion = params.region?.trim().toUpperCase() || null;
   const normalizedCategory = params.category?.trim() || null;
   const shouldAggregateGlobal = !normalizedRegion;
+  const normalizedSort = normalizeYouTubeHotSort(params.sort, normalizedRegion);
 
   return withYouTubeHotReadRetry(async () => {
     const batch = await getLatestPublishedBatch();
@@ -603,12 +675,7 @@ export async function queryLatestYouTubeHot(params: YouTubeHotQueryParams): Prom
         JOIN youtube_hot_hourly_snapshots s ON s.id = i.snapshot_id
         ${whereSqlBase}
         GROUP BY i.video_id
-        ORDER BY
-          aggregateRegionCount DESC,
-          aggregateScore DESC,
-          aggregateBestRank ASC,
-          COALESCE(MAX(i.view_count), 0) DESC,
-          i.video_id ASC
+        ${buildYouTubeHotOrderBySql(normalizedSort, true)}
         LIMIT ${pageSize}
         OFFSET ${offset}
       `);
@@ -669,7 +736,7 @@ export async function queryLatestYouTubeHot(params: YouTubeHotQueryParams): Prom
           GROUP BY i.video_id
         ) agg ON agg.videoId = i.video_id
         ${whereSqlList}
-        ORDER BY i.rank ASC, i.video_id ASC
+        ${buildYouTubeHotOrderBySql(normalizedSort, false)}
         LIMIT ${pageSize}
         OFFSET ${offset}
       `);

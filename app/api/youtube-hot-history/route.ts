@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryLatestYouTubeHot } from '@/lib/youtube-hot/db';
+import { normalizeYouTubeHotSort } from '@/lib/youtube-hot/types';
 
 function parsePositiveInt(value: string | null, fallback: number, max: number) {
   const parsed = Number(value);
@@ -18,12 +19,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const region = normalizeFilterValue(searchParams.get('region'))?.toUpperCase() ?? null;
     const category = normalizeFilterValue(searchParams.get('category'));
+    const sort = normalizeYouTubeHotSort(searchParams.get('sort'), region);
     const page = parsePositiveInt(searchParams.get('page'), 1, 100000);
     const pageSize = parsePositiveInt(searchParams.get('pageSize'), 20, 100);
 
     const result = await queryLatestYouTubeHot({
       region,
       category,
+      sort,
       page,
       pageSize,
     });
@@ -32,6 +35,7 @@ export async function GET(request: NextRequest) {
       query: {
         region,
         category,
+        sort,
         page,
         pageSize,
       },

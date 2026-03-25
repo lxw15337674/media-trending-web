@@ -42,5 +42,5 @@ export default async function YouTubeHotPage({ params, searchParams }: YouTubeHo
   const pageData = await buildYouTubeHotPageData(resolvedSearchParams, locale);
   const jsonLd = buildYouTubeHotJsonLd(locale, pageData.items);
 
-  return <YouTubeHotGridPage locale={locale} userRegion={userRegion} jsonLd={jsonLd} />;
+  return <YouTubeHotGridPage locale={locale} userRegion={userRegion} jsonLd={jsonLd} initialData={pageData} />;
 }

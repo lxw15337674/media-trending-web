@@ -106,9 +106,41 @@ export interface YouTubeHotQueryItem {
   aggregateScore?: number;
 }
 
+export const YOUTUBE_HOT_SORT_VALUES = [
+  'rank_asc',
+  'region_coverage_desc',
+  'views_desc',
+  'published_newest',
+] as const;
+
+export type YouTubeHotSort = (typeof YOUTUBE_HOT_SORT_VALUES)[number];
+
+export function getAvailableYouTubeHotSorts(region?: string | null): readonly YouTubeHotSort[] {
+  if (region?.trim()) {
+    return ['rank_asc', 'views_desc', 'published_newest'];
+  }
+
+  return YOUTUBE_HOT_SORT_VALUES;
+}
+
+export function getDefaultYouTubeHotSort(region?: string | null): YouTubeHotSort {
+  return region?.trim() ? 'rank_asc' : 'region_coverage_desc';
+}
+
+export function normalizeYouTubeHotSort(value: string | null | undefined, region?: string | null): YouTubeHotSort {
+  const normalized = value?.trim() ?? '';
+  const availableSorts = getAvailableYouTubeHotSorts(region);
+  if (availableSorts.includes(normalized as YouTubeHotSort)) {
+    return normalized as YouTubeHotSort;
+  }
+
+  return getDefaultYouTubeHotSort(region);
+}
+
 export interface YouTubeHotQueryParams {
   region?: string | null;
   category?: string | null;
+  sort?: YouTubeHotSort;
   page?: number;
   pageSize?: number;
 }

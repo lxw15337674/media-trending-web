@@ -147,7 +147,7 @@ export function Combobox({
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
     };
-  }, [open]);
+  }, [open, selectedLabel]);
 
   const filteredItems = useMemo(() => {
     const keyword = normalizeText(query);
