@@ -1,4 +1,6 @@
 import type { Locale } from '@/i18n/config';
+import { formatCompactNumber, formatMonthDay } from '@/i18n/format';
+import { usesTightUnitSpacing } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
 import { getYouTubeCategoryLabel } from '@/lib/youtube-hot/labels';
 import type { YouTubeHotQueryItem } from '@/lib/youtube-hot/types';
@@ -16,30 +18,6 @@ type YouTubeHotVideoCardProps =
       item: YouTubeHotQueryItem;
     };
 
-function formatCompactNumber(value: number | null | undefined, locale: Locale) {
-  if (value == null || !Number.isFinite(value)) return '--';
-
-  if (locale === 'zh') {
-    if (value >= 100000000) return `${(value / 100000000).toFixed(1)}亿`;
-    if (value >= 10000) return `${(value / 10000).toFixed(1)}万`;
-    return new Intl.NumberFormat('zh-CN').format(value);
-  }
-
-  if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-  return new Intl.NumberFormat('en-US').format(value);
-}
-
-function formatPublishedDate(value: string | null | undefined) {
-  if (!value) return '--';
-  const normalized = value.trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) {
-    return normalized.slice(5, 10);
-  }
-  return value;
-}
-
 function formatSubscriberText(item: YouTubeHotQueryItem, locale: Locale, t: ReturnType<typeof getMessages>['youtubeHot']) {
   if (item.hiddenSubscriberCount) {
     return t.cardSubscribersHidden;
@@ -47,14 +25,15 @@ function formatSubscriberText(item: YouTubeHotQueryItem, locale: Locale, t: Retu
   return `${formatCompactNumber(item.subscriberCount, locale)} ${t.cardSubscriberSuffix}`;
 }
 
-function formatRegionCount(regionCount: number, locale: Locale) {
-  return locale === 'zh' ? `${regionCount} 地区上榜` : `${regionCount} regions listed`;
+function formatRegionCount(regionCount: number, locale: Locale, t: ReturnType<typeof getMessages>['youtubeHot']) {
+  const compact = formatCompactNumber(regionCount, locale);
+  return usesTightUnitSpacing(locale) ? `${compact}${t.cardRegionsListed}` : `${compact} ${t.cardRegionsListed}`;
 }
 
 function formatViewsText(value: number | null | undefined, locale: Locale, t: ReturnType<typeof getMessages>['youtubeHot']) {
   const compact = formatCompactNumber(value, locale);
-  if (locale === 'zh') {
-    return `${compact}次观看`;
+  if (usesTightUnitSpacing(locale)) {
+    return `${compact}${t.cardViews}`;
   }
   return `${compact} ${t.cardViews}`;
 }
@@ -72,7 +51,7 @@ export function YouTubeHotVideoCard(props: YouTubeHotVideoCardProps) {
 
   const tags: YouTubeVideoCardTag[] = [
     {
-      text: formatRegionCount(regionCount, locale),
+      text: formatRegionCount(regionCount, locale, t),
       variant: item.isGlobalAggregate ? 'default' : 'secondary',
     },
     {
@@ -92,7 +71,7 @@ export function YouTubeHotVideoCard(props: YouTubeHotVideoCardProps) {
       channelAvatarUrl={item.channelAvatarUrl}
       metaLeft={formatSubscriberText(item, locale, t)}
       metaRightTop={formatViewsText(item.viewCount, locale, t)}
-      metaRightBottom={formatPublishedDate(item.publishedAt)}
+      metaRightBottom={formatMonthDay(item.publishedAt, locale)}
       tags={tags}
     />
   );

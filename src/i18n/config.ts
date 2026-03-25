@@ -1,4 +1,4 @@
-export const LOCALES = ['en', 'zh'] as const;
+export const LOCALES = ['en', 'zh', 'es', 'ja'] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -45,8 +45,10 @@ export function detectLocaleFromAcceptLanguage(acceptLanguage: string | null | u
     .filter(Boolean) as string[];
 
   for (const value of values) {
-    if (value.startsWith('zh')) return 'zh';
-    if (value.startsWith('en')) return 'en';
+    const matchedLocale = LOCALES.find((locale) => value === locale || value.startsWith(`${locale}-`));
+    if (matchedLocale) {
+      return matchedLocale;
+    }
   }
 
   return DEFAULT_LOCALE;

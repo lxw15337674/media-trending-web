@@ -1,8 +1,9 @@
 import { defineRouting } from 'next-intl/routing';
+import { DEFAULT_LOCALE, LOCALES } from '@/i18n/config';
 
 export const routing = defineRouting({
-  locales: ['en', 'zh'],
-  defaultLocale: 'en',
+  locales: LOCALES,
+  defaultLocale: DEFAULT_LOCALE,
   localePrefix: 'always',
   localeCookie: {
     name: 'lang',
@@ -10,4 +11,3 @@ export const routing = defineRouting({
     sameSite: 'lax',
   },
 });
-

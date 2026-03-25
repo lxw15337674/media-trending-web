@@ -1,6 +1,7 @@
-import dayjs from 'dayjs';
 import { ThumbsUp } from 'lucide-react';
 import type { Locale } from '@/i18n/config';
+import { formatCompactNumber, formatMonthDayTime } from '@/i18n/format';
+import { usesTightUnitSpacing } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
 import type { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 import { YouTubeVideoCard, type YouTubeVideoCardTag } from '@/components/youtubehot/YouTubeVideoCard';
@@ -12,28 +13,6 @@ interface YouTubeLiveVideoCardProps {
   languageLabel: string;
 }
 
-function formatCompactNumber(value: number | null | undefined, locale: Locale) {
-  if (value == null || !Number.isFinite(value)) return '--';
-
-  if (locale === 'zh') {
-    if (value >= 100000000) return `${(value / 100000000).toFixed(1)}亿`;
-    if (value >= 10000) return `${(value / 10000).toFixed(1)}万`;
-    return new Intl.NumberFormat('zh-CN').format(value);
-  }
-
-  if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-  return new Intl.NumberFormat('en-US').format(value);
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return '--';
-  const parsed = dayjs(value);
-  if (!parsed.isValid()) return value;
-  return parsed.format('MM-DD HH:mm');
-}
-
 function formatSubscriberText(item: YouTubeLiveItem, locale: Locale) {
   const t = getMessages(locale).youtubeLive;
   if (item.hiddenSubscriberCount) return t.cardSubscribersHidden;
@@ -42,7 +21,7 @@ function formatSubscriberText(item: YouTubeLiveItem, locale: Locale) {
 
 function formatWatchingText(value: number | null | undefined, locale: Locale, t: ReturnType<typeof getMessages>['youtubeLive']) {
   const compact = formatCompactNumber(value, locale);
-  if (locale === 'zh') {
+  if (usesTightUnitSpacing(locale)) {
     return `${compact}${t.cardWatching}`;
   }
   return `${compact} ${t.cardWatching}`;
@@ -86,7 +65,7 @@ export function YouTubeLiveVideoCard({ item, locale, categoryLabel, languageLabe
       channelAvatarUrl={item.channelAvatarUrl}
       metaLeft={formatSubscriberText(item, locale)}
       metaRightTop={formatWatchingText(item.concurrentViewers, locale, t)}
-      metaRightBottom={formatDateTime(item.startedAt)}
+      metaRightBottom={formatMonthDayTime(item.startedAt, locale)}
       tags={tags}
     />
   );

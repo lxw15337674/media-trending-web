@@ -24,6 +24,7 @@ import {
 } from './ui/navigation-menu';
 import { cn } from '@/lib/utils';
 import { type Locale, localeFromPathname, stripLocalePrefix, withLocalePrefix } from '@/i18n/config';
+import { getLocaleLabel } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
 
 const SHELL_CONTAINER_CLASS = 'mx-auto flex h-14 w-full items-center px-4 md:px-6 lg:w-[80%]';
@@ -44,7 +45,6 @@ function SiteHeaderFrame({
 }) {
   const messages = getMessages(locale);
   const barePath = stripLocalePrefix(pathname ?? '/');
-  const targetLocale = locale === 'zh' ? 'en' : 'zh';
   const siteNav = [
     {
       href: withLocalePrefix('/youtube-trending', locale),
@@ -66,8 +66,10 @@ function SiteHeaderFrame({
     return switchablePath && switchQuery ? `${nextPath}?${switchQuery}` : nextPath;
   };
   const localeOptions: Array<{ locale: Locale; label: string; href: string }> = [
-    { locale: 'en', label: 'English', href: buildLocaleHref('en') },
-    { locale: 'zh', label: '中文', href: buildLocaleHref('zh') },
+    { locale: 'en', label: getLocaleLabel('en'), href: buildLocaleHref('en') },
+    { locale: 'zh', label: getLocaleLabel('zh'), href: buildLocaleHref('zh') },
+    { locale: 'es', label: getLocaleLabel('es'), href: buildLocaleHref('es') },
+    { locale: 'ja', label: getLocaleLabel('ja'), href: buildLocaleHref('ja') },
   ];
   const activeItem =
     siteNav.find((item) => pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`))) ?? siteNav[0];

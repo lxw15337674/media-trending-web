@@ -1,6 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { hasLocale } from 'next-intl';
 import { NextRequest, NextResponse } from 'next/server';
+import { detectLocaleFromAcceptLanguage, isLocale } from '@/i18n/config';
 import { routing } from '@/i18n/routing';
 import { getRequestCountryCode } from '@/lib/server/request-country';
 import { DEFAULT_YOUTUBE_HOT_REGION_CODES } from '@/lib/youtube-hot/default-regions';
@@ -18,8 +19,14 @@ export function proxy(request: NextRequest) {
   const segment = pathname.split('/')[1];
   if (!hasLocale(routing.locales, segment)) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = `/en${pathname}`;
-    return NextResponse.redirect(redirectUrl, 301);
+    const localeCookieName = typeof routing.localeCookie === 'object' ? routing.localeCookie.name : 'lang';
+    const cookieLocale = request.cookies.get(localeCookieName)?.value;
+    const preferredLocale = isLocale(cookieLocale)
+      ? cookieLocale
+      : detectLocaleFromAcceptLanguage(request.headers.get('accept-language'));
+
+    redirectUrl.pathname = `/${preferredLocale}${pathname}`;
+    return NextResponse.redirect(redirectUrl, 307);
   }
 
   const barePath = pathname.split('/').slice(2).join('/');

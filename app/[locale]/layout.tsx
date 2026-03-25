@@ -6,6 +6,7 @@ import '../globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppShellHeader } from '@/components/AppShellHeader';
 import { routing } from '@/i18n/routing';
+import { getHtmlLang } from '@/i18n/locale-meta';
 import { getSiteOrigin } from '@/lib/seo/site-origin';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -40,7 +41,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   }
 
   return (
-    <html lang={locale === 'zh' ? 'zh-CN' : 'en'} suppressHydrationWarning>
+    <html lang={getHtmlLang(locale)} suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AppShellHeader locale={locale} />

@@ -7,6 +7,7 @@ import { type ComboboxOption } from '@/components/ui/combobox';
 import { FilterCombobox } from '@/components/ui/filter-combobox';
 import { YouTubeLiveVideoCard } from '@/components/youtubehot/YouTubeLiveVideoCard';
 import type { Locale } from '@/i18n/config';
+import { getIntlLocale } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
 import { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 import { getYouTubeCategoryLabel } from '@/lib/youtube-hot/labels';
@@ -97,7 +98,7 @@ export function YouTubeLiveGridPage({
 
     let localizedDisplay: Intl.DisplayNames | null = null;
     let englishDisplay: Intl.DisplayNames | null = null;
-    const displayLocale = locale === 'en' ? 'en' : 'zh-CN';
+    const displayLocale = getIntlLocale(locale);
 
     try {
       localizedDisplay = new Intl.DisplayNames([displayLocale], { type: 'language' });
