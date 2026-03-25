@@ -19,7 +19,10 @@ export function proxy(request: NextRequest) {
   const segment = pathname.split('/')[1];
   if (!hasLocale(routing.locales, segment)) {
     const redirectUrl = request.nextUrl.clone();
-    const localeCookieName = typeof routing.localeCookie === 'object' ? routing.localeCookie.name : 'lang';
+    const localeCookieName =
+      typeof routing.localeCookie === 'object' && typeof routing.localeCookie.name === 'string'
+        ? routing.localeCookie.name
+        : 'lang';
     const cookieLocale = request.cookies.get(localeCookieName)?.value;
     const preferredLocale = isLocale(cookieLocale)
       ? cookieLocale

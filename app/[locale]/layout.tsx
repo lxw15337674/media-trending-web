@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import '../globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppShellHeader } from '@/components/AppShellHeader';
+import { HtmlLangSync } from '@/components/HtmlLangSync';
 import { routing } from '@/i18n/routing';
 import { getHtmlLang } from '@/i18n/locale-meta';
 import { getSiteOrigin } from '@/lib/seo/site-origin';
@@ -44,6 +45,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     <html lang={getHtmlLang(locale)} suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <HtmlLangSync />
           <AppShellHeader locale={locale} />
           {children}
         </ThemeProvider>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ModeToggle } from './ModeToggle';
 import { Suspense, useEffect } from 'react';
-import { Check, ChevronDown, Github, Languages } from 'lucide-react';
+import { Check, ChevronDown, Github, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -71,6 +71,7 @@ function SiteHeaderFrame({
     { locale: 'es', label: getLocaleLabel('es'), href: buildLocaleHref('es') },
     { locale: 'ja', label: getLocaleLabel('ja'), href: buildLocaleHref('ja') },
   ];
+  const currentLocaleLabel = localeOptions.find((option) => option.locale === locale)?.label ?? getLocaleLabel(locale);
   const activeItem =
     siteNav.find((item) => pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`))) ?? siteNav[0];
 
@@ -138,8 +139,9 @@ function SiteHeaderFrame({
         <div className="ml-auto flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label={messages.common.switchLanguage}>
-                <Languages className="size-4" />
+              <Button variant="outline" size="sm" className="gap-2" aria-label={messages.common.switchLanguage}>
+                <Globe className="size-4" />
+                <span>{currentLocaleLabel}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

@@ -20,6 +20,7 @@ export function formatMonthDay(value: string | null | undefined, locale: Locale)
   return new Intl.DateTimeFormat(getIntlLocale(locale), {
     month: '2-digit',
     day: '2-digit',
+    timeZone: 'UTC',
   }).format(parsed.toDate());
 }
 
@@ -35,5 +36,6 @@ export function formatMonthDayTime(value: string | null | undefined, locale: Loc
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: 'UTC',
   }).format(parsed.toDate());
 }
