@@ -2,18 +2,18 @@ name:  YouTube Trending Crawl
 
 on:
   schedule:
-    - cron: '5 * * * *'
+    - cron: '5 */2 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: youtube-trending-crawl-hourly
+  group: youtube-trending-crawl-bihourly
   cancel-in-progress: false
 
 jobs:
-  crawl-hourly:
+  crawl-bihourly:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -41,4 +41,4 @@ jobs:
 
 
       - name: Crawl YouTube trending snapshots
-        run: pnpm crawl:youtube:trending --no-retry
+        run: pnpm crawl:youtube:trending --no-retry --max-results=100

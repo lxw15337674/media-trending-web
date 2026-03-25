@@ -60,9 +60,9 @@ function parseCliArgs(): CliOptions {
 
   const maxResults = parsePositiveNumber(
     args.find((arg) => arg.startsWith('--max-results='))?.split('=')[1],
-    50,
+    100,
     1,
-    50,
+    200,
   );
 
   const concurrency = parsePositiveNumber(

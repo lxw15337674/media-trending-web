@@ -2,7 +2,7 @@
 
 YouTube-only trending site with:
 
-- YouTube 视频榜（小时抓取，按地区）
+- YouTube 视频榜（每 2 小时抓取，按地区）
 - YouTube 直播榜（定时抓取，全局前 N）
 
 ## Tech Stack
@@ -34,6 +34,7 @@ pnpm dev
 # only purges YouTube live snapshots
 pnpm db:purge -- --days=30
 pnpm crawl:youtube:trending
+pnpm crawl:youtube:trending -- --max-results=100
 pnpm crawl:youtube:trending -- --dry-run
 
 pnpm crawl:youtube:live
