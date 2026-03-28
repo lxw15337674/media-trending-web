@@ -25,6 +25,7 @@ function normalizeCookieSource(value: unknown) {
 function buildTarget(input: {
   regionKey: string;
   regionLabel?: string | null;
+  placeId?: string | null;
   locationSearchQuery?: string | null;
   locationSelectText?: string | null;
   cookieSource?: string | null;
@@ -37,6 +38,7 @@ function buildTarget(input: {
 }): XTrendTarget {
   const regionKey = input.regionKey.trim().toLowerCase();
   const explicitRegionLabel = input.regionLabel?.trim() || null;
+  const explicitPlaceId = input.placeId?.trim() || null;
   const explicitLocationSearchQuery = input.locationSearchQuery?.trim() || null;
   const explicitLocationSelectText = input.locationSelectText?.trim() || null;
   const cookieSource = normalizeCookieSource(input.cookieSource);
@@ -51,13 +53,16 @@ function buildTarget(input: {
     throw new Error('X Trends target is missing regionKey.');
   }
 
-  const resolvedLocationConfig =
-    explicitLocationSearchQuery && explicitLocationSelectText
-      ? {
-          locationSearchQuery: explicitLocationSearchQuery,
-          locationSelectText: explicitLocationSelectText,
-        }
-      : resolveXTrendRegionLocationConfig(regionKey);
+  const resolvedLocationConfig = resolveXTrendRegionLocationConfig(regionKey);
+  const placeId = explicitPlaceId ?? resolvedLocationConfig.placeId ?? null;
+  const locationSearchQuery = explicitLocationSearchQuery ?? resolvedLocationConfig.locationSearchQuery ?? null;
+  const locationSelectText = explicitLocationSelectText ?? resolvedLocationConfig.locationSelectText ?? null;
+
+  if (!placeId && (!locationSearchQuery || !locationSelectText)) {
+    throw new Error(
+      `X Trends target region=${regionKey} must provide placeId or both locationSearchQuery/locationSelectText.`,
+    );
+  }
 
   if (cookieSource === 'storage_state_file' && !storageStatePath) {
     throw new Error(
@@ -72,8 +77,9 @@ function buildTarget(input: {
   return {
     regionKey,
     regionLabel: resolveXTrendRegionLabel(regionKey, explicitRegionLabel),
-    locationSearchQuery: resolvedLocationConfig.locationSearchQuery,
-    locationSelectText: resolvedLocationConfig.locationSelectText,
+    placeId,
+    locationSearchQuery,
+    locationSelectText,
     cookieSource,
     storageStatePath: storageStatePath ? path.resolve(storageStatePath) : null,
     adminApiBaseUrl,
@@ -97,6 +103,7 @@ function parseJsonTargets(raw: string): XTrendTarget[] {
     return buildTarget({
       regionKey: String(record.regionKey ?? ''),
       regionLabel: String(record.regionLabel ?? '').trim() || null,
+      placeId: String(record.placeId ?? '').trim() || null,
       locationSearchQuery: String(record.locationSearchQuery ?? '').trim() || null,
       locationSelectText: String(record.locationSelectText ?? '').trim() || null,
       cookieSource: String(record.cookieSource ?? DEFAULT_COOKIE_SOURCE),
@@ -141,4 +148,3 @@ export function loadXTrendTargetsFromEnv(): XTrendTarget[] {
 
   return loadDefaultTargetsFromCode();
 }
-

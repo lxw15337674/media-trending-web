@@ -4,13 +4,21 @@ import { resolveXTrendStorageState } from './cookie-provider';
 import { XTrendRegionResult, XTrendTarget, type XTrendExtractionSource, type XTrendItem } from './types';
 
 const DEFAULT_TIMEOUT_MS = 45_000;
-const DEFAULT_WAIT_AFTER_LOAD_MS = 5_000;
+const DEFAULT_WAIT_AFTER_LOAD_MS = 1_000;
+const DEFAULT_MAX_TRENDS = 20;
+const DOM_TREND_LINK_SELECTOR = 'a[href*="/search?q="]';
+const MIN_READY_TREND_LINKS = 5;
+const READY_SIGNAL_TIMEOUT_MS = 12_000;
+const FALLBACK_SIGNAL_TIMEOUT_MS = 4_000;
+const FALLBACK_WAIT_AFTER_LOAD_MS = 2_500;
+const POST_ACTION_SETTLE_CAP_MS = 1_000;
 const DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const DEFAULT_LOCALE = 'en-US';
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0';
 const EXPLORE_SETTINGS_URL = 'https://x.com/settings/explore';
 const EXPLORE_LOCATION_URL = 'https://x.com/settings/explore/location';
+const SET_EXPLORE_SETTINGS_PATH = '/i/api/2/guide/set_explore_settings.json';
 const DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
@@ -28,6 +36,14 @@ interface ExtractedResult {
   trendCount: number;
   trends: XTrendItem[];
   rawPayload: unknown;
+}
+
+interface CapturedApiHeaders {
+  authorization: string;
+  xCsrfToken: string;
+  xTwitterActiveUser: string;
+  xTwitterAuthType: string;
+  xTwitterClientLanguage: string;
 }
 
 function sleep(ms: number) {
@@ -219,6 +235,13 @@ function toTrendItems(rawItems: unknown[]): XTrendItem[] {
   return mapped.filter((item): item is XTrendItem => item !== null);
 }
 
+function limitTrendItems(items: XTrendItem[], maxItems = DEFAULT_MAX_TRENDS) {
+  return items.slice(0, maxItems).map((item, index) => ({
+    ...item,
+    rank: index + 1,
+  }));
+}
+
 async function extractFromTimelineResponse(response: Response): Promise<ExtractedResult | null> {
   const url = response.url();
   if (!url.includes('GenericTimelineById') && !url.includes('ExplorePage')) {
@@ -330,6 +353,23 @@ function getBrowserLaunchOptions(target: XTrendTarget, headless: boolean): Launc
   return launchOptions;
 }
 
+function captureApiHeaders(headers: Record<string, string | undefined>): CapturedApiHeaders | null {
+  const authorization = headers.authorization?.trim();
+  const xCsrfToken = headers['x-csrf-token']?.trim();
+
+  if (!authorization || !xCsrfToken) {
+    return null;
+  }
+
+  return {
+    authorization,
+    xCsrfToken,
+    xTwitterActiveUser: headers['x-twitter-active-user']?.trim() || 'yes',
+    xTwitterAuthType: headers['x-twitter-auth-type']?.trim() || 'OAuth2Session',
+    xTwitterClientLanguage: headers['x-twitter-client-language']?.trim() || 'en',
+  };
+}
+
 async function openBrowserSession(params: {
   target: XTrendTarget;
   headless: boolean;
@@ -347,9 +387,48 @@ async function openBrowserSession(params: {
   return { browser, context, page };
 }
 
-async function waitForPageSettled(page: Page, timeoutMs: number, waitAfterLoadMs: number) {
-  await page.waitForLoadState('networkidle', { timeout: timeoutMs }).catch(() => {});
-  await sleep(waitAfterLoadMs);
+function getPostActionSettleMs(waitAfterLoadMs: number) {
+  return Math.max(0, Math.min(waitAfterLoadMs, POST_ACTION_SETTLE_CAP_MS));
+}
+
+async function waitForCondition(predicate: () => boolean, timeoutMs: number, intervalMs = 200) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (predicate()) {
+      return true;
+    }
+
+    await sleep(Math.min(intervalMs, Math.max(0, deadline - Date.now())));
+  }
+
+  return predicate();
+}
+
+async function waitForTrendSignals(
+  page: Page,
+  networkHits: ExtractedResult[],
+  timeoutMs: number,
+  waitAfterLoadMs: number,
+) {
+  const signalTimeoutMs = Math.min(timeoutMs, READY_SIGNAL_TIMEOUT_MS);
+
+  await Promise.race([
+    waitForCondition(() => networkHits.some((hit) => hit.trendCount > 0), signalTimeoutMs),
+    page
+      .waitForFunction(
+        ({ selector, minCount }) => document.querySelectorAll(selector).length >= minCount,
+        { selector: DOM_TREND_LINK_SELECTOR, minCount: MIN_READY_TREND_LINKS },
+        { timeout: signalTimeoutMs },
+      )
+      .then(() => true)
+      .catch(() => false),
+  ]);
+
+  const settleMs = getPostActionSettleMs(waitAfterLoadMs);
+  if (settleMs > 0) {
+    await sleep(settleMs);
+  }
 }
 
 async function ensureManualLocationMode(page: Page, timeoutMs: number, waitAfterLoadMs: number) {
@@ -357,15 +436,16 @@ async function ensureManualLocationMode(page: Page, timeoutMs: number, waitAfter
     waitUntil: 'domcontentloaded',
     timeout: timeoutMs,
   });
-  await waitForPageSettled(page, timeoutMs, waitAfterLoadMs);
-
   const currentLocationToggle = page.locator('[data-testid="currentLocation"] input[type="checkbox"]').first();
   await currentLocationToggle.waitFor({ state: 'attached', timeout: timeoutMs });
 
   if (await currentLocationToggle.isChecked()) {
     await currentLocationToggle.click({ force: true, timeout: timeoutMs });
     await page.locator('[data-testid="exploreLocations"]').first().waitFor({ state: 'visible', timeout: timeoutMs });
-    await sleep(waitAfterLoadMs);
+    const settleMs = getPostActionSettleMs(waitAfterLoadMs);
+    if (settleMs > 0) {
+      await sleep(settleMs);
+    }
     return;
   }
 
@@ -375,13 +455,67 @@ async function ensureManualLocationMode(page: Page, timeoutMs: number, waitAfter
   }
 }
 
-async function switchRegion(page: Page, target: XTrendTarget, timeoutMs: number, waitAfterLoadMs: number) {
+async function switchRegionViaApi(
+  page: Page,
+  target: XTrendTarget,
+  headers: CapturedApiHeaders,
+  waitAfterLoadMs: number,
+) {
+  if (!target.placeId) {
+    throw new Error(`Missing placeId for region=${target.regionKey}`);
+  }
+
+  const result = await page.evaluate(
+    async ({ path, placeId, headers }) => {
+      const response = await fetch(path, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          authorization: headers.authorization,
+          'x-csrf-token': headers.xCsrfToken,
+          'x-twitter-active-user': headers.xTwitterActiveUser,
+          'x-twitter-auth-type': headers.xTwitterAuthType,
+          'x-twitter-client-language': headers.xTwitterClientLanguage,
+          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body: new URLSearchParams({ places: placeId }).toString(),
+      });
+
+      const text = await response.text();
+      return {
+        status: response.status,
+        ok: response.ok,
+        body: text.slice(0, 500),
+      };
+    },
+    {
+      path: SET_EXPLORE_SETTINGS_PATH,
+      placeId: target.placeId,
+      headers,
+    },
+  );
+
+  if (!result.ok) {
+    throw new Error(
+      `set_explore_settings request failed for region=${target.regionKey} status=${result.status} body=${result.body}`,
+    );
+  }
+
+  const settleMs = getPostActionSettleMs(waitAfterLoadMs);
+  if (settleMs > 0) {
+    await sleep(settleMs);
+  }
+}
+
+async function switchRegionViaUi(page: Page, target: XTrendTarget, timeoutMs: number, waitAfterLoadMs: number) {
+  if (!target.locationSearchQuery || !target.locationSelectText) {
+    throw new Error(`Missing UI location config for region=${target.regionKey}`);
+  }
+
   await page.goto(EXPLORE_LOCATION_URL, {
     waitUntil: 'domcontentloaded',
     timeout: timeoutMs,
   });
-  await waitForPageSettled(page, timeoutMs, waitAfterLoadMs);
-
   const searchInput = page.locator('input').first();
   await searchInput.waitFor({ state: 'visible', timeout: timeoutMs });
   await searchInput.fill('');
@@ -397,7 +531,6 @@ async function switchRegion(page: Page, target: XTrendTarget, timeoutMs: number,
 
   await searchInput.fill(target.locationSearchQuery);
   await autocompletePromise;
-  await sleep(1_000);
 
   const exactButton = page.getByRole('button', { name: target.locationSelectText, exact: true }).first();
   const fuzzyButton = page.locator('button').filter({ hasText: target.locationSelectText }).first();
@@ -407,7 +540,7 @@ async function switchRegion(page: Page, target: XTrendTarget, timeoutMs: number,
 
   const setLocationPromise = page.waitForResponse(
     (response) =>
-      response.url().includes('/set_explore_settings.json') && response.request().method() === 'POST',
+      response.url().includes(SET_EXPLORE_SETTINGS_PATH) && response.request().method() === 'POST',
     { timeout: timeoutMs },
   );
 
@@ -419,7 +552,35 @@ async function switchRegion(page: Page, target: XTrendTarget, timeoutMs: number,
     );
   }
 
-  await sleep(waitAfterLoadMs);
+  const settleMs = getPostActionSettleMs(waitAfterLoadMs);
+  if (settleMs > 0) {
+    await sleep(settleMs);
+  }
+}
+
+async function switchRegion(
+  page: Page,
+  target: XTrendTarget,
+  apiHeaders: CapturedApiHeaders | null,
+  timeoutMs: number,
+  waitAfterLoadMs: number,
+) {
+  const apiErrors: string[] = [];
+
+  if (target.placeId && apiHeaders) {
+    try {
+      await switchRegionViaApi(page, target, apiHeaders, waitAfterLoadMs);
+      return;
+    } catch (error) {
+      apiErrors.push(toErrorText(error));
+    }
+  }
+
+  await switchRegionViaUi(page, target, timeoutMs, waitAfterLoadMs);
+
+  if (apiErrors.length) {
+    console.warn(`region=${target.regionKey} api-switch fallback to ui: ${apiErrors.join(' | ')}`);
+  }
 }
 
 async function extractCurrentRegionTrends(params: {
@@ -438,21 +599,39 @@ async function extractCurrentRegionTrends(params: {
 
   try {
     networkHits.length = 0;
+    const trendSignalPromise = waitForTrendSignals(page, networkHits, timeoutMs, waitAfterLoadMs);
     await page.goto(target.targetUrl, {
       waitUntil: 'domcontentloaded',
       timeout: timeoutMs,
     });
-    await waitForPageSettled(page, timeoutMs, waitAfterLoadMs);
+    await trendSignalPromise;
 
     loggedIn = await isLoggedIn(page);
-    const networkResult = networkHits.sort((left, right) => right.trendCount - left.trendCount)[0] ?? null;
-    const domResult = await extractFromDom(page);
+    let networkResult = networkHits.sort((left, right) => right.trendCount - left.trendCount)[0] ?? null;
+    let domResult = await extractFromDom(page);
+
+    if (!networkResult && !domResult) {
+      await waitForTrendSignals(
+        page,
+        networkHits,
+        Math.min(timeoutMs, FALLBACK_SIGNAL_TIMEOUT_MS),
+        Math.max(waitAfterLoadMs, FALLBACK_WAIT_AFTER_LOAD_MS),
+      );
+      networkResult = networkHits.sort((left, right) => right.trendCount - left.trendCount)[0] ?? null;
+      domResult = await extractFromDom(page);
+    }
+
     const finalResult = networkResult ?? domResult;
     sourceUrl = finalResult?.pageUrl ?? page.url();
     extractionSource = finalResult?.source ?? null;
 
     if (!finalResult) {
       throw new Error(`No trend data extracted. loggedIn=${loggedIn} currentUrl=${page.url()}`);
+    }
+
+    const limitedItems = limitTrendItems(finalResult.trends);
+    if (!limitedItems.length) {
+      throw new Error(`No trend data extracted after limiting. loggedIn=${loggedIn} currentUrl=${page.url()}`);
     }
 
     return {
@@ -463,7 +642,7 @@ async function extractCurrentRegionTrends(params: {
       sourceUrl,
       extractionSource: finalResult.source,
       loggedIn,
-      items: finalResult.trends,
+      items: limitedItems,
       rawPayload: finalResult.rawPayload,
     };
   } catch (error) {
@@ -509,6 +688,14 @@ export async function crawlXTrendTargets(params: {
     const page = session.page;
     const networkHits: ExtractedResult[] = [];
     let collectNetworkHits = false;
+    let apiHeaders: CapturedApiHeaders | null = null;
+
+    page.on('request', (request) => {
+      const captured = captureApiHeaders(request.headers());
+      if (captured) {
+        apiHeaders = captured;
+      }
+    });
 
     page.on('response', async (response) => {
       if (!collectNetworkHits) return;
@@ -528,7 +715,7 @@ export async function crawlXTrendTargets(params: {
 
     for (const target of targets) {
       try {
-        await switchRegion(page, target, timeoutMs, waitAfterLoadMs);
+        await switchRegion(page, target, apiHeaders, timeoutMs, waitAfterLoadMs);
         collectNetworkHits = true;
         const result = await extractCurrentRegionTrends({
           page,

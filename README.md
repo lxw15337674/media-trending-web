@@ -88,7 +88,6 @@ Built-in region labels currently include:
 - `ph` -> `Philippines`
 - `vn` -> `Vietnam`
 - `tr` -> `Turkey`
-- `global` -> `Global`
 
 For GitHub Actions hourly crawl, add these repository secrets:
 

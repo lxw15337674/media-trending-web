@@ -62,7 +62,7 @@ function parseCliArgs(): CliOptions {
 
   const waitAfterLoadMs = parsePositiveNumber(
     args.find((arg) => arg.startsWith('--wait-after-load-ms='))?.split('=')[1],
-    5_000,
+    1_000,
     0,
     60_000,
   );
