@@ -20,7 +20,6 @@ jobs:
       TZ: Asia/Shanghai
       TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
       TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      X_TREND_REGION_KEY: ${{ secrets.X_TREND_REGION_KEY }}
       X_TREND_COOKIE_SOURCE: admin_api
       X_TREND_ADMIN_API_BASE_URL: ${{ secrets.X_TREND_ADMIN_API_BASE_URL }}
       X_TREND_ADMIN_API_KEY: ${{ secrets.X_TREND_ADMIN_API_KEY }}

@@ -4,7 +4,7 @@ YouTube-only trending site with:
 
 - YouTube 视频榜（每 2 小时抓取，按地区）
 - YouTube 直播榜（定时抓取，全局前 N）
-- X Trends（按小时抓取，当前可先跑单地区，配置层已支持后续扩展为多地区串行）
+- X Trends（按小时抓取，当前默认地区列表在代码中维护，现为 `hk`，同时保留 `X_TREND_TARGETS_JSON` 作为后续多地区串行扩展入口）
 
 ## Tech Stack
 
@@ -22,11 +22,11 @@ Required:
 - `YOUTUBE_API_KEY_DAILY` (用于 `crawl:youtube:trending`)
 - `YOUTUBE_API_KEY_LIVE` (用于 `crawl:youtube:live`)
 
-For X Trends crawler, always required:
+For the current default X Trends crawler:
 
-- `X_TREND_REGION_KEY`
-
-`X_TREND_REGION_KEY` is the only external region input. The crawler resolves a human-readable label from an internal region map before writing logs and database rows.
+- default targets are stored in code as data
+- current default target list is `['hk']`
+- region labels are resolved from the built-in region map
 
 X Trends cookie source selection:
 
@@ -50,10 +50,10 @@ Other optional X Trends variables:
 - `X_TREND_LOCALE`
 - `X_TREND_TARGETS_JSON`
 
-`X_TREND_TARGETS_JSON` can be used to prepare multi-region serial crawling. Each item supports:
+`X_TREND_TARGETS_JSON` can be used later for multi-region serial crawling. Each item supports:
 
 - `regionKey`
-- `regionLabel` (optional override; usually unnecessary)
+- `regionLabel` (optional override)
 - `cookieSource`
 - `storageStatePath`
 - `adminApiBaseUrl`
@@ -87,7 +87,6 @@ Built-in region labels currently include:
 
 For GitHub Actions hourly crawl, add these repository secrets:
 
-- `X_TREND_REGION_KEY`
 - `X_TREND_ADMIN_API_BASE_URL`
 - `X_TREND_ADMIN_API_KEY`
 - `X_TREND_LOCALE` (optional)
@@ -122,7 +121,6 @@ Example local debug flow for X Trends:
 
 ```bash
 # local file mode
-export X_TREND_REGION_KEY=hk
 export X_TREND_COOKIE_SOURCE=storage_state_file
 export X_TREND_STORAGE_STATE_PATH=/path/to/x-storage-state.json
 pnpm crawl:x:trending -- --dry-run
