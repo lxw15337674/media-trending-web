@@ -25,15 +25,15 @@ const DEFAULT_TARGET_REGIONS = [
   { regionKey: 'fr' },
 ] as const;
 const DEFAULT_TARGET_URL = 'https://x.com/explore/tabs/trending';
-const DEFAULT_COOKIE_SOURCE = 'gist_url';
+const DEFAULT_COOKIE_SOURCE = 'admin_api';
 
 function normalizeCookieSource(value: unknown) {
   const normalized = String(value ?? DEFAULT_COOKIE_SOURCE)
     .trim()
     .toLowerCase();
 
-  if (normalized === 'gist' || normalized === 'gist_url') {
-    return 'gist_url';
+  if (normalized === 'admin_api') {
+    return 'admin_api';
   }
 
   return 'storage_state_file';
@@ -47,7 +47,7 @@ function buildTarget(input: {
   locationSelectText?: string | null;
   cookieSource?: string | null;
   storageStatePath?: string | null;
-  gistUrl?: string | null;
+  adminApiKey?: string | null;
   targetUrl?: string | null;
   browserExecutablePath?: string | null;
   locale?: string | null;
@@ -59,7 +59,7 @@ function buildTarget(input: {
   const explicitLocationSelectText = input.locationSelectText?.trim() || null;
   const cookieSource = normalizeCookieSource(input.cookieSource);
   const storageStatePath = input.storageStatePath?.trim() || null;
-  const gistUrl = input.gistUrl?.trim() || null;
+  const adminApiKey = input.adminApiKey?.trim() || null;
   const targetUrl = input.targetUrl?.trim() || DEFAULT_TARGET_URL;
   const browserExecutablePath = input.browserExecutablePath?.trim() || null;
   const locale = input.locale?.trim() || null;
@@ -85,8 +85,8 @@ function buildTarget(input: {
     );
   }
 
-  if (cookieSource === 'gist_url' && !gistUrl) {
-    throw new Error(`X Trends target region=${regionKey} is missing gistUrl for gist_url source.`);
+  if (cookieSource === 'admin_api' && !adminApiKey) {
+    throw new Error(`X Trends target region=${regionKey} is missing adminApiKey for admin_api source.`);
   }
 
   return {
@@ -97,7 +97,7 @@ function buildTarget(input: {
     locationSelectText,
     cookieSource,
     storageStatePath: storageStatePath ? path.resolve(storageStatePath) : null,
-    gistUrl,
+    adminApiKey,
     targetUrl,
     browserExecutablePath,
     locale,
@@ -122,7 +122,7 @@ function parseJsonTargets(raw: string): XTrendTarget[] {
       locationSelectText: String(record.locationSelectText ?? '').trim() || null,
       cookieSource: String(record.cookieSource ?? DEFAULT_COOKIE_SOURCE),
       storageStatePath: String(record.storageStatePath ?? '').trim() || null,
-      gistUrl: String(record.gistUrl ?? '').trim() || null,
+      adminApiKey: String(record.adminApiKey ?? '').trim() || null,
       targetUrl: String(record.targetUrl ?? DEFAULT_TARGET_URL),
       browserExecutablePath: String(record.browserExecutablePath ?? '').trim() || null,
       locale: String(record.locale ?? '').trim() || null,
@@ -133,7 +133,7 @@ function parseJsonTargets(raw: string): XTrendTarget[] {
 function loadDefaultTargetsFromCode(): XTrendTarget[] {
   const cookieSource = normalizeCookieSource(process.env.X_TREND_COOKIE_SOURCE);
   const storageStatePath = process.env.X_TREND_STORAGE_STATE_PATH?.trim() || null;
-  const gistUrl = process.env.X_TREND_GIST_URL?.trim() || null;
+  const adminApiKey = process.env.X_TREND_ADMIN_API_KEY?.trim() || null;
   const targetUrl = process.env.X_TREND_TARGET_URL?.trim() || DEFAULT_TARGET_URL;
   const browserExecutablePath = process.env.X_TREND_BROWSER_EXECUTABLE_PATH?.trim() || null;
   const locale = process.env.X_TREND_LOCALE?.trim() || null;
@@ -143,7 +143,7 @@ function loadDefaultTargetsFromCode(): XTrendTarget[] {
       regionKey: target.regionKey,
       cookieSource,
       storageStatePath,
-      gistUrl,
+      adminApiKey,
       targetUrl,
       browserExecutablePath,
       locale,

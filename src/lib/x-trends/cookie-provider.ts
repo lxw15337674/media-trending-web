@@ -7,9 +7,9 @@ type InMemoryStorageState = Exclude<ResolvedStorageState, string>;
 type StorageStateCookie = InMemoryStorageState['cookies'][number];
 
 const FIXED_X_COOKIE_WEBSITE = 'x.com';
-const GIST_API_BASE_URL = 'https://api.github.com';
-const GIST_API_MAX_RETRIES = 3;
-const GIST_API_RETRYABLE_STATUS = new Set([403, 429, 500, 502, 503, 504]);
+const FIXED_ADMIN_API_BASE_URL = 'https://dev-api.bhwa233.com';
+const ADMIN_API_MAX_RETRIES = 5;
+const ADMIN_API_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 interface RawCookieRecord {
   name?: unknown;
@@ -24,16 +24,19 @@ interface RawCookieRecord {
   sameSite?: unknown;
 }
 
-interface GistApiFilePayload {
-  filename?: unknown;
-  raw_url?: unknown;
-  truncated?: unknown;
-  content?: unknown;
-}
-
-interface GistApiPayload {
-  files?: Record<string, GistApiFilePayload>;
+interface AdminApiSuccessPayload {
+  success?: boolean;
+  error?: unknown;
   message?: unknown;
+  code?: unknown;
+  requestId?: unknown;
+  data?: {
+    website?: unknown;
+    normalizedWebsite?: unknown;
+    matchedWebsite?: unknown;
+    sourceFile?: unknown;
+    content?: unknown;
+  };
 }
 
 function getString(value: unknown) {
@@ -49,19 +52,6 @@ function truncateText(value: string | null, maxLength = 240) {
   const normalized = value.replace(/\s+/g, ' ').trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength)}...`;
-}
-
-function getNumber(value: unknown) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
 }
 
 function normalizeSameSite(value: unknown): StorageStateCookie['sameSite'] {
@@ -126,14 +116,6 @@ function normalizeCookie(raw: RawCookieRecord): StorageStateCookie | null {
     secure: normalizeBoolean(raw.secure),
     sameSite: normalizeSameSite(raw.sameSite),
   } satisfies StorageStateCookie;
-}
-
-function normalizeHeaders(headers: unknown) {
-  if (!headers || typeof headers !== 'object') {
-    return {} as Record<string, unknown>;
-  }
-
-  return headers as Record<string, unknown>;
 }
 
 function extractCookieArrayFromDomainCookieMapEntry(value: unknown) {
@@ -205,84 +187,48 @@ function extractCookieArrayFromContent(content: unknown, matchedWebsite: string 
   return null;
 }
 
-function buildGistApiError(params: {
+function buildAdminApiError(params: {
   status: number;
+  payload: AdminApiSuccessPayload | null;
   rawText: string | null;
   attempt: number;
   regionKey: string;
-  gistId: string;
-  remaining: number | null;
-  reset: number | null;
 }) {
   const detailParts = [
-    params.remaining != null ? `remaining=${params.remaining}` : null,
-    params.reset != null ? `reset=${params.reset}` : null,
+    getString(params.payload?.code) ? `code=${getString(params.payload?.code)}` : null,
+    getString(params.payload?.error) ? `error=${getString(params.payload?.error)}` : null,
+    getString(params.payload?.message) ? `message=${getString(params.payload?.message)}` : null,
+    getString(params.payload?.requestId) ? `requestId=${getString(params.payload?.requestId)}` : null,
   ].filter((part): part is string => Boolean(part));
 
   const bodySnippet = truncateText(params.rawText);
-  if (bodySnippet) {
+  if (bodySnippet && !detailParts.some((part) => part.includes(bodySnippet))) {
     detailParts.push(`body=${bodySnippet}`);
   }
 
   return new Error(
-    `Gist cookie fetch failed status=${params.status} attempt=${params.attempt}/${GIST_API_MAX_RETRIES} region=${params.regionKey} gistId=${params.gistId}${detailParts.length ? ` ${detailParts.join(' ')}` : ''}`,
+    `Admin API cookie fetch failed status=${params.status} attempt=${params.attempt}/${ADMIN_API_MAX_RETRIES} region=${params.regionKey}${detailParts.length ? ` ${detailParts.join(' ')}` : ''}`,
   );
 }
 
-function extractGistId(value: string | null) {
-  if (!value) {
-    return null;
+async function fetchAdminApiCookieConfig(target: XTrendTarget) {
+  const apiKey = target.adminApiKey?.trim();
+
+  if (!apiKey) {
+    throw new Error(`Admin API cookie source requires adminApiKey for region=${target.regionKey}`);
   }
 
-  const trimmed = value.trim();
-  const directMatch = trimmed.match(/^[0-9a-f]{20,}$/i);
-  if (directMatch) {
-    return directMatch[0];
-  }
+  const url = new URL('/api/admin/gist-cookie', FIXED_ADMIN_API_BASE_URL);
+  url.searchParams.set('website', FIXED_X_COOKIE_WEBSITE);
 
-  try {
-    const url = new URL(trimmed);
-    const gistPathMatch = url.pathname.match(/([0-9a-f]{20,})/i);
-    if (gistPathMatch) {
-      return gistPathMatch[1];
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function rankGistFileCandidate(filename: string | null) {
-  if (!filename) {
-    return 0;
-  }
-
-  const normalized = filename.toLowerCase();
-  let score = 0;
-
-  if (normalized.includes('cookie')) score += 10;
-  if (normalized.includes('default')) score += 8;
-  if (normalized.includes('x.com')) score += 6;
-  if (normalized.includes('twitter')) score += 4;
-  if (normalized.includes('x')) score += 2;
-
-  return score;
-}
-
-async function fetchTextWithRetries(params: {
-  url: string;
-  headers?: Record<string, string>;
-  label: string;
-  regionKey: string;
-  gistId: string;
-}) {
   let lastError: Error | null = null;
 
-  for (let attempt = 1; attempt <= GIST_API_MAX_RETRIES; attempt++) {
+  for (let attempt = 1; attempt <= ADMIN_API_MAX_RETRIES; attempt++) {
     try {
-      const response = await axios.get(params.url, {
-        headers: params.headers,
+      const response = await axios.get(url.toString(), {
+        headers: {
+          'x-api-key': apiKey,
+        },
         responseType: 'text',
         timeout: 30_000,
         transformResponse: [(value) => value],
@@ -290,115 +236,42 @@ async function fetchTextWithRetries(params: {
       });
 
       const rawText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-      if (response.status >= 200 && response.status < 300) {
-        return rawText;
+      const parsedPayload = rawText ? (parseJsonString(rawText) as AdminApiSuccessPayload | null) : null;
+
+      if (response.status < 200 || response.status >= 300) {
+        lastError = buildAdminApiError({
+          status: response.status,
+          payload: parsedPayload,
+          rawText,
+          attempt,
+          regionKey: target.regionKey,
+        });
+
+        if (attempt < ADMIN_API_MAX_RETRIES && ADMIN_API_RETRYABLE_STATUS.has(response.status)) {
+          await sleep(attempt * 1_500);
+          continue;
+        }
+
+        throw lastError;
       }
 
-      const headers = normalizeHeaders(response.headers);
-      lastError = buildGistApiError({
-        status: response.status,
-        rawText,
-        attempt,
-        regionKey: params.regionKey,
-        gistId: params.gistId,
-        remaining: getNumber(headers['x-ratelimit-remaining']),
-        reset: getNumber(headers['x-ratelimit-reset']),
-      });
-
-      if (attempt < GIST_API_MAX_RETRIES && GIST_API_RETRYABLE_STATUS.has(response.status)) {
-        await sleep(attempt * 1_500);
-        continue;
+      if (!parsedPayload?.success || !parsedPayload.data) {
+        throw new Error(
+          `Admin API cookie fetch returned unexpected payload for region=${target.regionKey}${rawText ? ` body=${truncateText(rawText)}` : ''}`,
+        );
       }
 
-      throw lastError;
+      return parsedPayload.data;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      if (attempt < GIST_API_MAX_RETRIES) {
+      if (attempt < ADMIN_API_MAX_RETRIES) {
         await sleep(attempt * 1_500);
         continue;
       }
     }
   }
 
-  throw lastError ?? new Error(`${params.label} failed for region=${params.regionKey} gistId=${params.gistId}`);
-}
-
-async function fetchGistCookieConfig(target: XTrendTarget) {
-  const gistUrl = target.gistUrl?.trim() || null;
-  const gistId = extractGistId(gistUrl);
-
-  if (!gistId) {
-    throw new Error(`Gist cookie source requires a valid gistUrl for region=${target.regionKey}`);
-  }
-
-  const apiUrl = `${GIST_API_BASE_URL}/gists/${gistId}`;
-  const apiResponseText = await fetchTextWithRetries({
-    url: apiUrl,
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'website-hot-history-x-trends',
-    },
-    label: 'Gist metadata fetch',
-    regionKey: target.regionKey,
-    gistId,
-  });
-  const apiPayload = parseJsonString(apiResponseText) as GistApiPayload | null;
-  const files = apiPayload?.files;
-
-  if (!files || typeof files !== 'object' || !Object.keys(files).length) {
-    throw new Error(
-      `Gist metadata did not include files for region=${target.regionKey} gistId=${gistId}${apiPayload?.message ? ` message=${String(apiPayload.message)}` : ''}`,
-    );
-  }
-
-  const orderedFiles = Object.values(files).sort((left, right) => {
-    const leftFilename = getString(left.filename);
-    const rightFilename = getString(right.filename);
-    return rankGistFileCandidate(rightFilename) - rankGistFileCandidate(leftFilename);
-  });
-
-  const attemptedFiles: string[] = [];
-
-  for (const file of orderedFiles) {
-    const filename = getString(file.filename) ?? '(unnamed)';
-    attemptedFiles.push(filename);
-
-    const rawUrl = getString(file.raw_url);
-    const inlineContent = typeof file.content === 'string' && !normalizeBoolean(file.truncated) ? file.content : null;
-    const fileContent =
-      inlineContent ??
-      (rawUrl
-        ? await fetchTextWithRetries({
-            url: rawUrl,
-            headers: {
-              Accept: 'text/plain',
-              'User-Agent': 'website-hot-history-x-trends',
-            },
-            label: `Gist raw file fetch filename=${filename}`,
-            regionKey: target.regionKey,
-            gistId,
-          })
-        : null);
-
-    if (!fileContent) {
-      continue;
-    }
-
-    const cookieArray = extractCookieArrayFromContent(fileContent, FIXED_X_COOKIE_WEBSITE);
-    if (cookieArray?.length) {
-      return {
-        content: fileContent,
-        website: FIXED_X_COOKIE_WEBSITE,
-        matchedWebsite: FIXED_X_COOKIE_WEBSITE,
-        normalizedWebsite: FIXED_X_COOKIE_WEBSITE,
-        sourceFile: filename,
-      };
-    }
-  }
-
-  throw new Error(
-    `Gist cookie payload did not include cookies for region=${target.regionKey} gistId=${gistId} website=${FIXED_X_COOKIE_WEBSITE} files=${attemptedFiles.join(', ')}`,
-  );
+  throw lastError ?? new Error(`Admin API cookie fetch failed for region=${target.regionKey}`);
 }
 
 export async function resolveXTrendStorageState(target: XTrendTarget): Promise<ResolvedStorageState> {
@@ -411,14 +284,14 @@ export async function resolveXTrendStorageState(target: XTrendTarget): Promise<R
     return storageStatePath;
   }
 
-  const payload = await fetchGistCookieConfig(target);
+  const payload = await fetchAdminApiCookieConfig(target);
   const matchedWebsite =
     getString(payload.matchedWebsite) ?? getString(payload.normalizedWebsite) ?? FIXED_X_COOKIE_WEBSITE;
   const cookieArray = extractCookieArrayFromContent(payload.content, matchedWebsite);
 
   if (!cookieArray?.length) {
     throw new Error(
-      `Gist cookie payload did not include cookies for region=${target.regionKey} matchedWebsite=${matchedWebsite}`,
+      `Admin API cookie payload did not include cookies for region=${target.regionKey} matchedWebsite=${matchedWebsite}`,
     );
   }
 
@@ -427,7 +300,7 @@ export async function resolveXTrendStorageState(target: XTrendTarget): Promise<R
     .filter((item): item is StorageStateCookie => item !== null);
 
   if (!cookies.length) {
-    throw new Error(`Gist cookie payload included no valid cookies for region=${target.regionKey}`);
+    throw new Error(`Admin API cookie payload included no valid cookies for region=${target.regionKey}`);
   }
 
   return {
