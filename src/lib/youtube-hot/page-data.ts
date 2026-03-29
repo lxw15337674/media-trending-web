@@ -92,10 +92,11 @@ export async function buildYouTubeHotPageData(
     const requestedRegion = normalizeFilterValue(readSearchParamRaw(searchParams, 'region'))?.toUpperCase() ?? null;
     const requestedCategory = normalizeFilterValue(readSearchParamRaw(searchParams, 'category')) ?? null;
     const page = normalizePage(readSearchParamRaw(searchParams, 'page'));
+    const requestedSort = takeFirst(readSearchParamRaw(searchParams, 'sort'));
 
     const region = hasRegion(filters.regions, requestedRegion) ? requestedRegion : null;
     const category = hasCategory(filters.categories, requestedCategory) ? requestedCategory : null;
-    const sort = normalizeYouTubeHotSort(readSearchParamRaw(searchParams, 'sort'), region);
+    const sort = normalizeYouTubeHotSort(requestedSort, region);
 
     const result = await queryLatestYouTubeHot({
       region,

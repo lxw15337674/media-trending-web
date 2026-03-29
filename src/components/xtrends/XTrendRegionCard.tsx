@@ -1,6 +1,7 @@
 'use client';
 
-import { formatRelativeUpdateZh } from '@/i18n/format';
+import type { Locale } from '@/i18n/config';
+import { formatRelativeUpdate } from '@/i18n/format';
 import type { XTrendPageData } from '@/lib/x-trends/page-data';
 import type { XTrendQueryItem } from '@/lib/x-trends/types';
 
@@ -9,6 +10,7 @@ interface XTrendRegionCardProps {
   regionKey: string;
   items: XTrendPageData['groups'][number]['items'];
   updatedAt: string;
+  locale: Locale;
 }
 
 function buildTrendHref(item: XTrendQueryItem) {
@@ -20,7 +22,7 @@ function buildTrendHref(item: XTrendQueryItem) {
   return `https://x.com/search?q=${query}&src=trend_click`;
 }
 
-export function XTrendRegionCard({ label, regionKey, items, updatedAt }: XTrendRegionCardProps) {
+export function XTrendRegionCard({ label, regionKey, items, updatedAt, locale }: XTrendRegionCardProps) {
   return (
     <section className="overflow-hidden rounded-[20px] border border-white/8 bg-[#131418] shadow-[0_16px_56px_rgba(0,0,0,0.28)]">
       <header className="flex items-center justify-between gap-2.5 border-b border-white/6 px-3 py-1.5">
@@ -32,7 +34,7 @@ export function XTrendRegionCard({ label, regionKey, items, updatedAt }: XTrendR
             <h2 className="truncate text-[15px] font-semibold tracking-tight text-zinc-50">{label}</h2>
           </div>
         </div>
-        <div className="shrink-0 text-[11px] font-medium text-zinc-500">{formatRelativeUpdateZh(updatedAt)}</div>
+        <div className="shrink-0 text-[11px] font-medium text-zinc-500">{formatRelativeUpdate(updatedAt, locale)}</div>
       </header>
 
       <div className="divide-y divide-white/6">

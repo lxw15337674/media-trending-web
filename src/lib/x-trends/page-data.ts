@@ -1,7 +1,7 @@
 import type { Locale } from '@/i18n/config';
+import { getMessages } from '@/i18n/messages';
 import { classifyRuntimeError, logServerError } from '@/lib/server/runtime-error';
 import { readSearchParamRaw, type SearchParamsInput } from '@/lib/server/search-params';
-import { X_TREND_COPY } from '@/lib/x-trends/copy';
 import { queryLatestXTrendRegionGroups } from '@/lib/x-trends/db';
 import type { XTrendRegionGroup, XTrendRegionOption } from '@/lib/x-trends/types';
 
@@ -36,6 +36,7 @@ export async function buildXTrendPageData(
   rawSearchParams: SearchParamsInput,
   locale: Locale,
 ): Promise<XTrendPageData> {
+  const t = getMessages(locale).xTrending;
   const fallbackNow = new Date().toISOString();
 
   try {
@@ -54,7 +55,7 @@ export async function buildXTrendPageData(
         generatedAt: fallbackNow,
         snapshotHour: null,
         totalRegions: 0,
-        errorMessage: X_TREND_COPY.errorNoSnapshot,
+        errorMessage: t.errorNoSnapshot,
         locale,
       };
     }
@@ -73,14 +74,14 @@ export async function buildXTrendPageData(
     };
   } catch (error) {
     logServerError('x-trends/page-data', error);
-    let errorMessage: string = X_TREND_COPY.errorLoad;
+    let errorMessage: string = t.errorLoad;
     const category = classifyRuntimeError(error);
     if (category === 'missing_db_env') {
-      errorMessage = X_TREND_COPY.errorNoDbEnv;
+      errorMessage = t.errorNoDbEnv;
     } else if (category === 'missing_table') {
-      errorMessage = X_TREND_COPY.errorNoTable;
+      errorMessage = t.errorNoTable;
     } else if (category === 'query_failed' || category === 'network' || category === 'auth') {
-      errorMessage = X_TREND_COPY.errorQueryFailed;
+      errorMessage = t.errorQueryFailed;
     }
 
     return {

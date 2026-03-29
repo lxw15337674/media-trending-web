@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { type Locale } from '@/i18n/config';
+import { getMessages } from '@/i18n/messages';
 import { getIntlLocale } from '@/i18n/locale-meta';
 import { buildLocaleAlternates } from '@/lib/seo/locale-alternates';
 import { toAbsoluteUrl } from '@/lib/seo/site-origin';
-import { X_TREND_COPY } from '@/lib/x-trends/copy';
 import type { XTrendQueryItem } from '@/lib/x-trends/types';
 
 function buildTrendHref(item: XTrendQueryItem) {
@@ -16,12 +16,13 @@ function buildTrendHref(item: XTrendQueryItem) {
 }
 
 export function buildXTrendMetadata(locale: Locale): Metadata {
+  const t = getMessages(locale).xTrending;
   const canonicalPath = `/${locale}/x-trending`;
   const absoluteCanonical = toAbsoluteUrl(canonicalPath);
 
   return {
-    title: X_TREND_COPY.metadataTitle,
-    description: X_TREND_COPY.metadataDescription,
+    title: t.metadataTitle,
+    description: t.metadataDescription,
     keywords: ['x trends', 'twitter trends', 'x trending topics', 'twitter trending topics', 'x hot topics'],
     alternates: {
       canonical: absoluteCanonical,
@@ -30,15 +31,15 @@ export function buildXTrendMetadata(locale: Locale): Metadata {
     openGraph: {
       type: 'website',
       url: absoluteCanonical,
-      title: X_TREND_COPY.metadataTitle,
-      description: X_TREND_COPY.metadataDescription,
-      locale: getIntlLocale('zh'),
+      title: t.metadataTitle,
+      description: t.metadataDescription,
+      locale: getIntlLocale(locale),
       siteName: 'Galaxy Trending',
     },
     twitter: {
       card: 'summary_large_image',
-      title: X_TREND_COPY.metadataTitle,
-      description: X_TREND_COPY.metadataDescription,
+      title: t.metadataTitle,
+      description: t.metadataDescription,
     },
     robots: {
       index: true,
@@ -52,6 +53,7 @@ export function buildXTrendJsonLd(
   items: XTrendQueryItem[],
   regionLabel: string | null,
 ) {
+  const t = getMessages(locale).xTrending;
   const canonicalPath = `/${locale}/x-trending`;
   const itemListElement = items.slice(0, 10).map((item, index) => ({
     '@type': 'ListItem',
@@ -63,13 +65,13 @@ export function buildXTrendJsonLd(
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: regionLabel ? `${X_TREND_COPY.title} - ${regionLabel}` : X_TREND_COPY.title,
-    description: X_TREND_COPY.metadataDescription,
+    name: regionLabel ? `${t.title} - ${regionLabel}` : t.title,
+    description: t.metadataDescription,
     url: toAbsoluteUrl(canonicalPath),
-    inLanguage: getIntlLocale('zh'),
+    inLanguage: getIntlLocale(locale),
     mainEntity: {
       '@type': 'ItemList',
-      name: regionLabel ? `${regionLabel} ${X_TREND_COPY.title}` : X_TREND_COPY.title,
+      name: regionLabel ? `${regionLabel} ${t.title}` : t.title,
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
       numberOfItems: itemListElement.length,
       itemListElement,

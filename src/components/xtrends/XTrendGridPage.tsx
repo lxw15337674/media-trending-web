@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
 import { FilterCombobox } from '@/components/ui/filter-combobox';
 import { XTrendRegionCard } from '@/components/xtrends/XTrendRegionCard';
+import { getMessages } from '@/i18n/messages';
 import { prioritizePreferredItem } from '@/lib/filters/prioritize-preferred-item';
 import type { XTrendPageData } from '@/lib/x-trends/page-data';
-import { X_TREND_COPY } from '@/lib/x-trends/copy';
 import { cn } from '@/lib/utils';
 
 interface XTrendGridPageProps {
@@ -23,14 +23,15 @@ function normalizeRegion(value: string | null | undefined, fallback: string) {
 
 function buildRegionOptions(
   regions: XTrendPageData['regions'],
+  allRegionsLabel: string,
   userRegion: string | null | undefined,
 ) {
   const sortedRegions = prioritizePreferredItem(regions, (item) => item.regionKey, userRegion);
   return [
     {
       value: 'all',
-      label: X_TREND_COPY.allRegions,
-      keywords: ['all', X_TREND_COPY.allRegions],
+      label: allRegionsLabel,
+      keywords: ['all', allRegionsLabel],
     },
     ...sortedRegions.map((region) => ({
       value: region.regionKey,
@@ -41,6 +42,7 @@ function buildRegionOptions(
 }
 
 export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps) {
+  const t = getMessages(initialData.locale).xTrending;
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedRegion, setSelectedRegion] = useState(initialData.focusRegion);
@@ -60,7 +62,10 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
         : initialData.groups.filter((group) => group.regionKey === visibleRegion),
     [initialData.groups, visibleRegion],
   );
-  const regionOptions = useMemo(() => buildRegionOptions(initialData.regions, userRegion), [initialData.regions, userRegion]);
+  const regionOptions = useMemo(
+    () => buildRegionOptions(initialData.regions, t.allRegions, userRegion),
+    [initialData.regions, t.allRegions, userRegion],
+  );
 
   const onRegionChange = (value: string) => {
     const nextRegion = value.trim().toLowerCase();
@@ -84,23 +89,19 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
 
   return (
     <main suppressHydrationWarning className="min-h-screen bg-[#090a0d] pb-10 text-zinc-100">
-      <h1 className="sr-only">{X_TREND_COPY.title}</h1>
+      <h1 className="sr-only">{t.title}</h1>
 
       <section className="mx-auto flex w-full max-w-[1900px] flex-col gap-4 px-4 pt-3 md:px-6 md:pt-6 xl:px-8">
         <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
           <CardHeader className="p-2 md:p-3">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="shrink-0 text-xl font-semibold tracking-tight text-zinc-950 dark:text-white md:text-2xl">
-                {X_TREND_COPY.title}
-              </h2>
-
               <div className="w-full min-[420px]:w-[260px] xl:w-[300px]">
                 <FilterCombobox
                   options={regionOptions}
                   value={visibleRegion}
-                  placeholder={X_TREND_COPY.filterRegionPlaceholder}
-                  emptyText="无匹配项"
-                  clearLabel="清空关键词"
+                  placeholder={t.filterRegionSearchPlaceholder}
+                  emptyText={t.filterNoMatch}
+                  clearLabel={t.clearSearch}
                   onValueChange={onRegionChange}
                 />
               </div>
@@ -116,7 +117,7 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
 
         {!initialData.errorMessage && visibleGroups.length === 0 ? (
           <Card className="border-white/8 bg-[#131418] shadow-none">
-            <CardContent className="p-8 text-sm text-zinc-400">{X_TREND_COPY.emptyState}</CardContent>
+            <CardContent className="p-8 text-sm text-zinc-400">{t.emptyState}</CardContent>
           </Card>
         ) : null}
 
@@ -134,6 +135,7 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
                 regionKey={group.regionKey.toUpperCase()}
                 items={group.items}
                 updatedAt={initialData.generatedAt}
+                locale={initialData.locale}
               />
             ))}
           </div>

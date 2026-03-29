@@ -45,7 +45,7 @@ export function formatMonthDayTime(value: string | null | undefined, locale: Loc
   }).format(parsed.toDate());
 }
 
-export function formatRelativeUpdateZh(value: string | null | undefined) {
+export function formatRelativeUpdate(value: string | null | undefined, locale: Locale) {
   if (!value) return '--';
 
   const parsed = dayjs.utc(value);
@@ -56,24 +56,62 @@ export function formatRelativeUpdateZh(value: string | null | undefined) {
   const diffHours = Math.abs(now.diff(parsed, 'hour'));
   const diffDays = Math.abs(now.diff(parsed, 'day'));
 
+  const relativeFormatter = new Intl.RelativeTimeFormat(getIntlLocale(locale), {
+    numeric: 'auto',
+  });
+  const wrapRelative = (text: string) => {
+    switch (locale) {
+      case 'zh':
+        return `${text}更新`;
+      case 'ja':
+        return `${text}更新`;
+      case 'es':
+        return `Actualizado ${text}`;
+      case 'en':
+      default:
+        return `Updated ${text}`;
+    }
+  };
+
   if (diffMinutes < 1) {
-    return '刚刚更新';
+    switch (locale) {
+      case 'zh':
+        return '刚刚更新';
+      case 'ja':
+        return 'たった今更新';
+      case 'es':
+        return 'Actualizado ahora mismo';
+      case 'en':
+      default:
+        return 'Updated just now';
+    }
   }
 
   if (diffMinutes < 60) {
-    return `${diffMinutes} 分钟前更新`;
+    return wrapRelative(relativeFormatter.format(-diffMinutes, 'minute'));
   }
 
   if (diffHours < 24) {
-    return `${diffHours} 小时前更新`;
+    return wrapRelative(relativeFormatter.format(-diffHours, 'hour'));
   }
 
   if (diffDays < 7) {
-    return `${diffDays} 天前更新`;
+    return wrapRelative(relativeFormatter.format(-diffDays, 'day'));
   }
 
   if (diffDays >= 7) {
-    return `${formatMonthDayTime(value, 'zh')} 更新`;
+    const formatted = formatMonthDayTime(value, locale);
+    switch (locale) {
+      case 'zh':
+        return `${formatted} 更新`;
+      case 'ja':
+        return `${formatted} 更新`;
+      case 'es':
+        return `Actualizado ${formatted}`;
+      case 'en':
+      default:
+        return `Updated ${formatted}`;
+    }
   }
 
   return '--';
