@@ -1,5 +1,5 @@
 export type XTrendExtractionSource = 'network' | 'dom';
-export type XTrendCookieSource = 'storage_state_file' | 'admin_api';
+export type XTrendCookieSource = 'storage_state_file' | 'gist_url';
 export type XTrendFailureCode =
   | 'cookie_fetch_failed'
   | 'browser_launch_failed'
@@ -27,8 +27,7 @@ export interface XTrendTarget {
   targetUrl: string;
   cookieSource: XTrendCookieSource;
   storageStatePath?: string | null;
-  adminApiBaseUrl?: string | null;
-  adminApiKey?: string | null;
+  gistUrl?: string | null;
   browserExecutablePath?: string | null;
   locale?: string | null;
 }
@@ -103,6 +102,19 @@ export interface XTrendQueryResult {
   total: number;
   totalPages: number;
   data: XTrendQueryItem[];
+}
+
+export interface XTrendRegionOption {
+  regionKey: string;
+  regionLabel: string;
+  itemCount: number;
+}
+
+export interface XTrendRegionGroup {
+  regionKey: string;
+  regionLabel: string;
+  itemCount: number;
+  items: XTrendQueryItem[];
 }
 
 export interface XTrendHistoryPoint extends XTrendQueryItem {}

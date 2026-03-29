@@ -32,7 +32,7 @@ const SHELL_CONTAINER_CLASS = 'mx-auto flex h-14 w-full items-center px-4 md:px-
 const GITHUB_REPO_URL = 'https://github.com/lxw15337674/galaxy-trending-web';
 
 function isLocaleSwitchablePath(barePath: string) {
-  return barePath === '/youtube-trending' || barePath === '/youtube-live';
+  return barePath === '/youtube-trending' || barePath === '/youtube-live' || barePath === '/x-trending';
 }
 
 function SiteHeaderFrame({
@@ -57,6 +57,11 @@ function SiteHeaderFrame({
       href: withLocalePrefix('/youtube-live', locale),
       label: messages.common.navYouTubeLive,
       mobileLabel: messages.common.navYouTubeLiveShort,
+    },
+    {
+      href: withLocalePrefix('/x-trending', locale),
+      label: messages.common.navXTrends,
+      mobileLabel: messages.common.navXTrendsShort,
     },
   ];
 
@@ -89,7 +94,7 @@ function SiteHeaderFrame({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-36">
-              <DropdownMenuLabel>YouTube</DropdownMenuLabel>
+              <DropdownMenuLabel>Trending</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 {siteNav.map((item) => {

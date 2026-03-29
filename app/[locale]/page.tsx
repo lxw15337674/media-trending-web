@@ -63,13 +63,21 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
   const sections = [
     {
       href: `/${locale}/youtube-trending`,
+      platform: 'YouTube',
       label: messages.common.navYouTubeHot,
       description: messages.home.trendingDescription,
     },
     {
       href: `/${locale}/youtube-live`,
+      platform: 'YouTube',
       label: messages.common.navYouTubeLive,
       description: messages.home.liveDescription,
+    },
+    {
+      href: `/${locale}/x-trending`,
+      platform: 'X',
+      label: messages.common.navXTrends,
+      description: messages.home.xTrendsDescription,
     },
   ];
 
@@ -86,14 +94,14 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sections.map((section) => (
             <Link
               key={section.href}
               href={section.href}
               className="group rounded-3xl border border-zinc-200 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:border-zinc-700"
             >
-              <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">YouTube</div>
+              <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{section.platform}</div>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
                 {section.label}
               </h2>

@@ -10,6 +10,7 @@ import { FilterCombobox } from '@/components/ui/filter-combobox';
 import { YouTubeHotVideoCard } from '@/components/youtubehot/YouTubeHotVideoCard';
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
+import { prioritizePreferredItem } from '@/lib/filters/prioritize-preferred-item';
 import { createRegionDisplayNames, getLocalizedYouTubeRegionLabel, getYouTubeCategoryLabel } from '@/lib/youtube-hot/labels';
 import {
   getAvailableYouTubeHotSorts,
@@ -145,16 +146,7 @@ function buildRegionOptions(
   formatRegionLabel: (region: YouTubeRegion) => string,
   userRegion: string | null | undefined,
 ) {
-  const sortedRegions = !userRegion
-    ? regions
-    : (() => {
-        const targetIndex = regions.findIndex((item) => item.regionCode === userRegion);
-        if (targetIndex <= 0) {
-          return regions;
-        }
-
-        return [regions[targetIndex], ...regions.slice(0, targetIndex), ...regions.slice(targetIndex + 1)];
-      })();
+  const sortedRegions = prioritizePreferredItem(regions, (item) => item.regionCode, userRegion);
 
   return [
     { value: 'all', label: t.allRegions },

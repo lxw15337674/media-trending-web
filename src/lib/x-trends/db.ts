@@ -5,6 +5,7 @@ import {
   type XTrendHistoryPoint,
   type XTrendHistorySeries,
   type XTrendLatestBatch,
+  type XTrendRegionGroup,
   type XTrendQueryItem,
   type XTrendQueryResult,
   type XTrendRegionResult,
@@ -39,6 +40,12 @@ interface QueryRow {
   trendUrl: string | null;
   metaText: string | null;
   tweetVolume: number | null;
+}
+
+interface RegionRow {
+  regionKey: string;
+  regionLabel: string;
+  itemCount: number;
 }
 
 function nowUtcIso() {
@@ -334,6 +341,28 @@ export async function getLatestPublishedXTrendBatch(): Promise<XTrendLatestBatch
   return mapBatchRow(rows[0]);
 }
 
+export async function listLatestXTrendRegions() {
+  await ensureXTrendSchema();
+  const batch = await getLatestPublishedXTrendBatch();
+  if (!batch) return [];
+
+  const rows = await db.all<RegionRow>(sql`
+    SELECT
+      s.region_key as regionKey,
+      s.region_label as regionLabel,
+      s.item_count as itemCount
+    FROM x_trend_hourly_snapshots s
+    WHERE s.batch_id = ${batch.id} AND s.status = 'success'
+    ORDER BY s.id ASC
+  `);
+
+  return rows.map((row) => ({
+    regionKey: row.regionKey,
+    regionLabel: row.regionLabel,
+    itemCount: toNumber(row.itemCount, 0),
+  }));
+}
+
 export async function queryLatestXTrends(params: {
   regionKey: string;
   page?: number;
@@ -404,6 +433,81 @@ export async function queryLatestXTrends(params: {
       trendUrl: row.trendUrl,
       metaText: row.metaText,
       tweetVolume: toNullableNumber(row.tweetVolume),
+    })),
+  };
+}
+
+export async function queryLatestXTrendRegionGroups(limitPerRegion = 20): Promise<{
+  batch: XTrendLatestBatch | null;
+  groups: XTrendRegionGroup[];
+}> {
+  await ensureXTrendSchema();
+  const batch = await getLatestPublishedXTrendBatch();
+  const normalizedLimit = Math.min(50, Math.max(1, Math.floor(limitPerRegion)));
+
+  if (!batch) {
+    return {
+      batch: null,
+      groups: [],
+    };
+  }
+
+  const regions = await listLatestXTrendRegions();
+  if (!regions.length) {
+    return {
+      batch,
+      groups: [],
+    };
+  }
+
+  const rows = await db.all<QueryRow>(sql`
+    SELECT
+      ${batch.snapshotHour} as snapshotHour,
+      s.fetched_at as fetchedAt,
+      s.region_key as regionKey,
+      s.region_label as regionLabel,
+      i.rank as rank,
+      i.trend_name as trendName,
+      i.normalized_key as normalizedKey,
+      i.query_text as queryText,
+      i.trend_url as trendUrl,
+      i.meta_text as metaText,
+      i.tweet_volume as tweetVolume
+    FROM x_trend_hourly_items i
+    JOIN x_trend_hourly_snapshots s ON s.id = i.snapshot_id
+    WHERE
+      s.batch_id = ${batch.id}
+      AND s.status = 'success'
+      AND i.rank <= ${normalizedLimit}
+    ORDER BY s.id ASC, i.rank ASC
+  `);
+
+  const itemsByRegion = new Map<string, XTrendQueryItem[]>();
+  for (const row of rows) {
+    const regionItems = itemsByRegion.get(row.regionKey) ?? [];
+    regionItems.push({
+      snapshotHour: row.snapshotHour,
+      fetchedAt: row.fetchedAt,
+      regionKey: row.regionKey,
+      regionLabel: row.regionLabel,
+      rank: toNumber(row.rank, 0),
+      trendName: row.trendName,
+      normalizedKey: row.normalizedKey,
+      queryText: row.queryText,
+      trendUrl: row.trendUrl,
+      metaText: row.metaText,
+      tweetVolume: toNullableNumber(row.tweetVolume),
+    });
+    itemsByRegion.set(row.regionKey, regionItems);
+  }
+
+  return {
+    batch,
+    groups: regions.map((region) => ({
+      regionKey: region.regionKey,
+      regionLabel: region.regionLabel,
+      itemCount: region.itemCount,
+      items: itemsByRegion.get(region.regionKey) ?? [],
     })),
   };
 }

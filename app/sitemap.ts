@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { LOCALES } from '@/i18n/config';
 import { toAbsoluteUrl } from '@/lib/seo/site-origin';
+import { getLatestPublishedXTrendBatch } from '@/lib/x-trends/db';
 import { getLatestPublishedBatch } from '@/lib/youtube-hot/db';
 import { getLatestYouTubeLiveSnapshot } from '@/lib/youtube-live/db';
 
@@ -14,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   let trendingLastModified = now;
   let liveLastModified = now;
+  let xTrendingLastModified = now;
 
   try {
     const latestTrendingBatch = await getLatestPublishedBatch();
@@ -27,6 +29,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     liveLastModified = toValidDate(latestLiveSnapshot?.crawledAt, now);
   } catch {
     liveLastModified = now;
+  }
+
+  try {
+    const latestXTrendingBatch = await getLatestPublishedXTrendBatch();
+    xTrendingLastModified = toValidDate(latestXTrendingBatch?.generatedAt, now);
+  } catch {
+    xTrendingLastModified = now;
   }
 
   return LOCALES.flatMap((locale) => [
@@ -47,6 +56,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: liveLastModified,
       changeFrequency: 'daily' as const,
       priority: locale === 'en' ? 0.6 : 0.5,
+    },
+    {
+      url: toAbsoluteUrl(`/${locale}/x-trending`),
+      lastModified: xTrendingLastModified,
+      changeFrequency: 'hourly' as const,
+      priority: locale === 'en' ? 0.9 : 0.8,
     },
   ]);
 }
