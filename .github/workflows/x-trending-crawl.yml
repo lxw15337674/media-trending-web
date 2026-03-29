@@ -45,5 +45,5 @@ jobs:
         run: pnpm db:ensure:x:trends
 
       - name: Crawl X trends hourly
-        run: pnpm crawl:x:trending -- --no-retry --timeout-ms=60000
+        run: pnpm crawl:x:trending -- --timeout-ms=60000
 
