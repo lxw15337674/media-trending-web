@@ -209,7 +209,7 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
   const [pageSize, setPageSize] = useState(initialData.pageSize || DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState(initialData.total);
   const [totalPages, setTotalPages] = useState(initialData.totalPages);
-  const [generatedAt, setGeneratedAt] = useState<string | null>(initialData.generatedAt ?? null);
+  const [, setGeneratedAt] = useState<string | null>(initialData.generatedAt ?? null);
   const [filtersLoading, setFiltersLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);

@@ -20,7 +20,8 @@ async function main() {
     scriptName: 'crawl-youtube-music-shorts-songs-daily',
     client,
     cliOptions: options,
-    envCountries: process.env.YOUTUBE_MUSIC_DAILY_COUNTRY_CODES,
+    envCountries:
+      process.env.YOUTUBE_MUSIC_DAILY_SHORTS_COUNTRY_CODES ?? process.env.YOUTUBE_MUSIC_DAILY_COUNTRY_CODES,
     discoverCountries: async () =>
       (await client.listAvailableDailyShortsSongsCountries()).map((entry) => entry.countryCode),
     fetchSnapshot: (countryCode) => client.fetchDailyShortsSongs(countryCode),

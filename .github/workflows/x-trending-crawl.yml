@@ -41,8 +41,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Ensure X trends schema
-        run: pnpm db:ensure:x:trends
+      - name: Apply database migrations
+        run: pnpm db:migrate
 
       - name: Crawl X trends hourly
         run: pnpm crawl:x:trending -- --timeout-ms=60000

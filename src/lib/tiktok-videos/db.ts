@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
-import { ensureTikTokVideoSchema } from './ensure-schema';
+import { parseJsonObject, toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { nowUtcIso } from '@/lib/db/time';
 import type {
   TikTokVideoCountryFilter,
   TikTokVideoLatestBatch,
@@ -51,39 +52,6 @@ interface QueryRow {
   durationSeconds: number | null;
   regionName: string | null;
   rawItemJson: string | null;
-}
-
-function nowUtcIso() {
-  return new Date().toISOString();
-}
-
-function toJson(value: unknown) {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function parseJsonObject<T>(value: string | null): T | null {
-  if (!value) return null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
 }
 
 function mapBatchRow(row: BatchMetaRow | null | undefined): TikTokVideoLatestBatch | null {
@@ -291,7 +259,12 @@ async function updateBatchSummary(batchId: number, targetScopeCount: number) {
     throw new Error(`Failed to recalculate TikTok videos batch ${batchId}`);
   }
 
-  const nextStatus = summary.successScopeCount > 0 ? 'published' : 'failed';
+  const nextStatus =
+    summary.successScopeCount > 0 &&
+    summary.failedScopeCount === 0 &&
+    summary.successScopeCount === targetScopeCount
+      ? 'published'
+      : 'failed';
   const generatedAt = summary.snapshotHour;
 
   await db.run(sql`
@@ -314,7 +287,6 @@ async function updateBatchSummary(batchId: number, targetScopeCount: number) {
 }
 
 export async function saveTikTokVideoHourlyResults(snapshotHour: string, results: TikTokVideoTargetResult[]) {
-  await ensureTikTokVideoSchema();
   const batchId = await upsertBatch(snapshotHour);
   let success = 0;
   let failed = 0;
@@ -373,7 +345,6 @@ export async function saveTikTokVideoHourlyResults(snapshotHour: string, results
 }
 
 export async function getLatestPublishedTikTokVideoBatch(): Promise<TikTokVideoLatestBatch | null> {
-  await ensureTikTokVideoSchema();
   const rows = await db.all<BatchMetaRow>(sql`
     SELECT
       id,
@@ -391,9 +362,29 @@ export async function getLatestPublishedTikTokVideoBatch(): Promise<TikTokVideoL
   return mapBatchRow(rows[0]);
 }
 
+export async function getLatestCompleteTikTokVideoBatch(): Promise<TikTokVideoLatestBatch | null> {
+  const rows = await db.all<BatchMetaRow>(sql`
+    SELECT
+      id,
+      snapshot_hour as snapshotHour,
+      generated_at as generatedAt,
+      target_scope_count as targetScopeCount,
+      success_scope_count as successScopeCount,
+      failed_scope_count as failedScopeCount
+    FROM tiktok_video_hourly_batches
+    WHERE
+      target_scope_count > 0
+      AND success_scope_count = target_scope_count
+      AND failed_scope_count = 0
+    ORDER BY snapshot_hour DESC
+    LIMIT 1
+  `);
+
+  return mapBatchRow(rows[0]);
+}
+
 export async function listLatestTikTokVideoScopes(): Promise<TikTokVideoScopeFilter[]> {
-  await ensureTikTokVideoSchema();
-  const batch = await getLatestPublishedTikTokVideoBatch();
+  const batch = await getLatestCompleteTikTokVideoBatch();
   if (!batch) return [];
 
   const rows = await db.all<ScopeRow>(sql`
@@ -418,8 +409,7 @@ export async function listLatestTikTokVideoCountries(
   period: number,
   orderBy: TikTokVideoOrderBy,
 ): Promise<TikTokVideoCountryFilter[]> {
-  await ensureTikTokVideoSchema();
-  const batch = await getLatestPublishedTikTokVideoBatch();
+  const batch = await getLatestCompleteTikTokVideoBatch();
   if (!batch) return [];
 
   const rows = await db.all<CountryRow>(sql`
@@ -448,9 +438,8 @@ export async function queryLatestTikTokVideos(params: {
   period: number;
   orderBy: TikTokVideoOrderBy;
 }): Promise<TikTokVideoQueryResult> {
-  await ensureTikTokVideoSchema();
   const normalizedCountryCode = params.countryCode.trim().toUpperCase();
-  const batch = await getLatestPublishedTikTokVideoBatch();
+  const batch = await getLatestCompleteTikTokVideoBatch();
 
   if (!batch) {
     return {
@@ -536,5 +525,45 @@ export async function queryLatestTikTokVideos(params: {
       regionName: row.regionName,
       rawItem: parseJsonObject<Record<string, unknown>>(row.rawItemJson),
     })),
+  };
+}
+
+export async function getLatestTikTokVideoBatchHealth() {
+  const rows = await db.all<
+    {
+      snapshotHour: string;
+      generatedAt: string;
+      batchStatus: string;
+      targetScopeCount: number;
+      successScopeCount: number;
+      failedScopeCount: number;
+    }
+  >(sql`
+    SELECT
+      snapshot_hour as snapshotHour,
+      generated_at as generatedAt,
+      batch_status as batchStatus,
+      target_scope_count as targetScopeCount,
+      success_scope_count as successScopeCount,
+      failed_scope_count as failedScopeCount
+    FROM tiktok_video_hourly_batches
+    ORDER BY snapshot_hour DESC
+    LIMIT 1
+  `);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    snapshotHour: row.snapshotHour,
+    generatedAt: row.generatedAt,
+    batchStatus: row.batchStatus,
+    targetScopeCount: toNumber(row.targetScopeCount, 0),
+    successScopeCount: toNumber(row.successScopeCount, 0),
+    failedScopeCount: toNumber(row.failedScopeCount, 0),
+    isComplete:
+      toNumber(row.targetScopeCount, 0) > 0 &&
+      toNumber(row.successScopeCount, 0) === toNumber(row.targetScopeCount, 0) &&
+      toNumber(row.failedScopeCount, 0) === 0,
   };
 }

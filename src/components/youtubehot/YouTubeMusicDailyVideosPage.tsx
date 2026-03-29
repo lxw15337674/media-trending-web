@@ -30,7 +30,6 @@ export function YouTubeMusicDailyVideosPage({
   items,
   fetchedAt,
   chartEndDate,
-  itemCount,
   errorMessage,
   locale,
   jsonLd,

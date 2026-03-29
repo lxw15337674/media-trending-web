@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
+import { toBooleanInt, toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { nowUtcIso } from '@/lib/db/time';
 import {
   type YouTubeCategory,
   type YouTubeHotFilters,
@@ -65,15 +67,6 @@ interface QueryRow {
 const TRANSIENT_DB_RETRY_MAX_ATTEMPTS = 3;
 const TRANSIENT_DB_RETRY_BASE_DELAY_MS = 300;
 
-function toJson(value: unknown): string | null {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
 function parseMetadata(value: string | null): Record<string, unknown> | null {
   if (!value) return null;
   try {
@@ -110,21 +103,6 @@ function parsePositiveInt(value: unknown, fallback: number, max: number) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return Math.min(Math.floor(parsed), max);
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toBooleanInt(value: unknown) {
-  return toNumber(value, 0) === 1;
 }
 
 function buildVisibleYouTubeHotItemSql(itemAlias: string) {
@@ -266,7 +244,7 @@ function mapBatchRow(row: BatchMetaRow | undefined | null): YouTubeHotLatestBatc
 }
 
 async function upsertBatch(snapshotHour: string) {
-  const now = new Date().toISOString();
+  const now = nowUtcIso();
   const rows = await db.all<BatchIdRow>(sql`
     INSERT INTO youtube_hot_hourly_batches (
       snapshot_hour,
@@ -321,7 +299,7 @@ async function upsertSnapshot(params: {
       ${params.batchId},
       ${params.regionCode},
       ${params.regionName},
-      ${new Date().toISOString()},
+      ${nowUtcIso()},
       ${params.status},
       ${params.sourceUrl},
       ${params.itemCount},
@@ -452,7 +430,7 @@ async function updateBatchSummary(batchId: number) {
       region_count = ${summary.regionCount},
       success_region_count = ${summary.successRegionCount},
       failed_region_count = ${summary.failedRegionCount},
-      updated_at = ${new Date().toISOString()}
+      updated_at = ${nowUtcIso()}
     WHERE id = ${batchId}
   `);
 

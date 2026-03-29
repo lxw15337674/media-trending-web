@@ -6,7 +6,7 @@
     "dev": "vinext dev --port 3003",
     "build": "vinext build",
     "start": "vinext start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:purge": "tsx scripts/db-purge.ts",
@@ -24,8 +24,7 @@
     "crawl:youtube:live": "tsx scripts/crawl-youtube-live.ts",
     "deploy:cloudflare": "npx wrangler deploy --config dist/server/wrangler.json --name galaxy-trending-web",
     "deploy:cloudflare:preview": "npx wrangler deploy --dry-run --config dist/server/wrangler.json --name galaxy-trending-web",
-    "lint:vinext": "vinext lint",
-    "db:ensure:x:trends": "tsx scripts/db-ensure-x-trends.ts"
+    "lint:vinext": "eslint ."
   },
   "dependencies": {
     "@libsql/client": "0.17.2",

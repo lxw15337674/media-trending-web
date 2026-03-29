@@ -1,5 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
+import { toBooleanInt, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { nowUtcIso } from '@/lib/db/time';
 import { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 
 interface SnapshotIdRow {
@@ -69,25 +71,6 @@ let latestSnapshotCache:
       data: YouTubeLiveSnapshotWithItems | null;
     }
   | null = null;
-
-function nowUtcIso() {
-  return new Date().toISOString();
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toBooleanInt(value: unknown) {
-  return toNumber(value, 0) === 1;
-}
 
 function clearYouTubeLiveCache() {
   latestSnapshotCache = null;

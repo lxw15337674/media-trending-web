@@ -1,0 +1,124 @@
+name: Database Maintenance
+
+on:
+  schedule:
+    - cron: '20 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-maintenance
+  cancel-in-progress: false
+
+jobs:
+  purge-history-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Shanghai
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Purge historical JSON payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm db:purge | tee purge.log
+
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Database Maintenance"
+            echo
+
+            if [ -f purge.log ]; then
+              echo "| Dataset | Scrubbed Snapshots | Scrubbed Items | Deleted Batches | Deleted Snapshots | Deleted Items |"
+              echo "| --- | ---: | ---: | ---: | ---: | ---: |"
+
+              matched=0
+              while IFS= read -r line; do
+                [ -n "$line" ] || continue
+                case "$line" in
+                  applied\ *)
+                    matched=1
+                    dataset=""
+                    scrubbedSnapshots="0"
+                    scrubbedItems="0"
+                    deletedBatches="0"
+                    deletedSnapshots="0"
+                    deletedItems="0"
+
+                    for token in $line; do
+                      case "$token" in
+                        applied)
+                          ;;
+                        scrubbedSnapshots=*)
+                          scrubbedSnapshots="${token#*=}"
+                          ;;
+                        scrubbedItems=*)
+                          scrubbedItems="${token#*=}"
+                          ;;
+                        deletedBatches=*)
+                          deletedBatches="${token#*=}"
+                          ;;
+                        deletedSnapshots=*)
+                          deletedSnapshots="${token#*=}"
+                          ;;
+                        deletedItems=*)
+                          deletedItems="${token#*=}"
+                          ;;
+                        *)
+                          if [ -z "$dataset" ]; then
+                            dataset="$token"
+                          fi
+                          ;;
+                      esac
+                    done
+
+                    printf '| `%s` | %s | %s | %s | %s | %s |\n' \
+                      "$dataset" \
+                      "$scrubbedSnapshots" \
+                      "$scrubbedItems" \
+                      "$deletedBatches" \
+                      "$deletedSnapshots" \
+                      "$deletedItems"
+                    ;;
+                esac
+              done < purge.log
+
+              if [ "$matched" -eq 0 ]; then
+                echo "_No dataset summary lines were found in purge output._"
+              fi
+
+              echo
+              echo "<details><summary>Raw log</summary>"
+              echo
+              echo '```text'
+              cat purge.log
+              echo '```'
+              echo "</details>"
+            else
+              echo "_purge.log was not generated._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

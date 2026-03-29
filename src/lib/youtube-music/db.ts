@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
+import { toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
 import type {
   YouTubeMusicChartItem,
   YouTubeMusicChartSnapshotWithItems,
@@ -45,26 +46,6 @@ let latestSnapshotCache:
       data: YouTubeMusicChartSnapshotWithItems | null;
     }
   | null = null;
-
-function toJson(value: unknown): string | null {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function clearCache() {
   latestSnapshotCache = null;

@@ -170,9 +170,7 @@ async function main() {
     return;
   }
 
-  const { ensureXTrendSchema } = await import('../src/lib/x-trends/ensure-schema');
   const { saveXTrendHourlyResults } = await import('../src/lib/x-trends/db');
-  await ensureXTrendSchema();
   const summary = await saveXTrendHourlyResults(options.snapshotHour, finalResults);
   console.log(
     `stored x trends snapshot hour=${options.snapshotHour} success=${summary.success} failed=${summary.failed} status=${summary.batch.failedRegionCount === 0 ? 'published' : 'failed'}`,

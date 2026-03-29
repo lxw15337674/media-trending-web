@@ -410,6 +410,87 @@ export const tiktokVideoHourlyItems = sqliteTable(
   }),
 );
 
+export const tiktokHashtagHourlyBatches = sqliteTable(
+  'tiktok_hashtag_hourly_batches',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotHour: text('snapshot_hour').notNull(),
+    batchStatus: text('batch_status').notNull().default('pending'),
+    sourceName: text('source_name').notNull().default('tiktok-creative-center-hashtag'),
+    generatedAt: text('generated_at'),
+    targetCountryCount: integer('target_country_count').notNull().default(0),
+    successCountryCount: integer('success_country_count').notNull().default(0),
+    failedCountryCount: integer('failed_country_count').notNull().default(0),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotHourUnique: uniqueIndex('idx_tiktok_hashtag_hourly_batches_snapshot_hour').on(table.snapshotHour),
+    statusHourIdx: index('idx_tiktok_hashtag_hourly_batches_status_hour').on(table.batchStatus, table.snapshotHour),
+  }),
+);
+
+export const tiktokHashtagHourlySnapshots = sqliteTable(
+  'tiktok_hashtag_hourly_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    batchId: integer('batch_id')
+      .notNull()
+      .references(() => tiktokHashtagHourlyBatches.id, { onDelete: 'cascade' }),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    fetchedAt: text('fetched_at').notNull().default(sql`(datetime('now'))`),
+    status: text('status').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    listApiUrl: text('list_api_url'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    warningsJson: text('warnings_json'),
+    timingsJson: text('timings_json'),
+    rawPayload: text('raw_payload'),
+  },
+  (table) => ({
+    batchCountryUnique: uniqueIndex('idx_tiktok_hashtag_hourly_snapshots_batch_country_unique').on(
+      table.batchId,
+      table.countryCode,
+    ),
+    batchCountryIdx: index('idx_tiktok_hashtag_hourly_snapshots_batch_country').on(table.batchId, table.countryCode),
+    batchStatusIdx: index('idx_tiktok_hashtag_hourly_snapshots_batch_status').on(table.batchId, table.status),
+  }),
+);
+
+export const tiktokHashtagHourlyItems = sqliteTable(
+  'tiktok_hashtag_hourly_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => tiktokHashtagHourlySnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    hashtagId: text('hashtag_id').notNull(),
+    hashtagName: text('hashtag_name').notNull(),
+    publishCount: integer('publish_count'),
+    videoViews: integer('video_views'),
+    rankDiff: integer('rank_diff'),
+    rankDiffType: integer('rank_diff_type'),
+    industryName: text('industry_name'),
+    detailPageUrl: text('detail_page_url').notNull(),
+    trendPointsJson: text('trend_points_json'),
+    creatorPreviewJson: text('creator_preview_json'),
+    detailJson: text('detail_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_tiktok_hashtag_hourly_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotHashtagUnique: uniqueIndex('idx_tiktok_hashtag_hourly_items_snapshot_hashtag').on(
+      table.snapshotId,
+      table.hashtagId,
+    ),
+    snapshotIdx: index('idx_tiktok_hashtag_hourly_items_snapshot').on(table.snapshotId),
+    hashtagIdx: index('idx_tiktok_hashtag_hourly_items_hashtag').on(table.hashtagName),
+  }),
+);
+
 export const xTrendHourlyBatches = sqliteTable(
   'x_trend_hourly_batches',
   {
@@ -510,6 +591,12 @@ export type TikTokVideoHourlySnapshot = typeof tiktokVideoHourlySnapshots.$infer
 export type NewTikTokVideoHourlySnapshot = typeof tiktokVideoHourlySnapshots.$inferInsert;
 export type TikTokVideoHourlyItem = typeof tiktokVideoHourlyItems.$inferSelect;
 export type NewTikTokVideoHourlyItem = typeof tiktokVideoHourlyItems.$inferInsert;
+export type TikTokHashtagHourlyBatch = typeof tiktokHashtagHourlyBatches.$inferSelect;
+export type NewTikTokHashtagHourlyBatch = typeof tiktokHashtagHourlyBatches.$inferInsert;
+export type TikTokHashtagHourlySnapshot = typeof tiktokHashtagHourlySnapshots.$inferSelect;
+export type NewTikTokHashtagHourlySnapshot = typeof tiktokHashtagHourlySnapshots.$inferInsert;
+export type TikTokHashtagHourlyItem = typeof tiktokHashtagHourlyItems.$inferSelect;
+export type NewTikTokHashtagHourlyItem = typeof tiktokHashtagHourlyItems.$inferInsert;
 export type XTrendHourlyBatch = typeof xTrendHourlyBatches.$inferSelect;
 export type NewXTrendHourlyBatch = typeof xTrendHourlyBatches.$inferInsert;
 export type XTrendHourlySnapshot = typeof xTrendHourlySnapshots.$inferSelect;

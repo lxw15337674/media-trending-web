@@ -15,7 +15,6 @@ const DEFAULT_LIMIT = 20;
 const DEFAULT_MAX_PAGES = 5;
 const BOOTSTRAP_URL_PREFIX = 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/pc';
 const CREATIVE_RADAR_API_PATH = '/creative_radar_api/';
-const LIST_API_PATH = '/creative_radar_api/v1/popular_trend/list';
 const DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATHS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',

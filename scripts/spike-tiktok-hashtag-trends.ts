@@ -288,9 +288,6 @@ async function extractDetailData(page: Page, detailPageUrl: string): Promise<Det
     await page.waitForTimeout(4_000);
 
     const pageData = await page.evaluate(() => {
-      const metricRows = Array.from(document.querySelectorAll('*'))
-        .map((node) => node.textContent?.replace(/\s+/g, ' ').trim() ?? '')
-        .filter(Boolean);
       const bodyText = document.body.innerText.replace(/\s+/g, ' ').trim();
 
       const topRegions: Array<{ rank: number; region: string; score: string }> = [];

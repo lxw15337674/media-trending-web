@@ -6,7 +6,7 @@ interface CacheItem<T> {
 }
 
 class MemoryCache {
-  private cache = new Map<string, CacheItem<any>>();
+  private cache = new Map<string, CacheItem<unknown>>();
   private cleanupInterval: NodeJS.Timeout;
 
   constructor() {
@@ -100,7 +100,7 @@ export function withCache<T>(
   fetcher: () => Promise<T>,
   ttlMs: number = 5 * 60 * 1000
 ): Promise<T> {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     try {
       // 尝试从缓存获取
       const cached = memoryCache.get<T>(key);
@@ -109,13 +109,13 @@ export function withCache<T>(
         return;
       }
 
-      // 缓存未命中，执行查询
-      const result = await fetcher();
-      
-      // 存储到缓存
-      memoryCache.set(key, result, ttlMs);
-      
-      resolve(result);
+      fetcher()
+        .then((result) => {
+          // 存储到缓存
+          memoryCache.set(key, result, ttlMs);
+          resolve(result);
+        })
+        .catch(reject);
     } catch (error) {
       reject(error);
     }

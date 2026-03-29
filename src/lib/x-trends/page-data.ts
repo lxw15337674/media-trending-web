@@ -1,25 +1,14 @@
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
-import { classifyRuntimeError, logServerError } from '@/lib/server/runtime-error';
+import { resolveStandardPageDataErrorMessage } from '@/lib/page-data/runtime-error-message';
+import { normalizeLowercaseKey } from '@/lib/page-data/search-param-utils';
+import { resolvePreferredCode } from '@/lib/page-data/selection-utils';
+import { logServerError } from '@/lib/server/runtime-error';
 import { readSearchParamRaw, type SearchParamsInput } from '@/lib/server/search-params';
 import { queryLatestXTrendRegionGroups } from '@/lib/x-trends/db';
 import type { XTrendRegionGroup, XTrendRegionOption } from '@/lib/x-trends/types';
 
 const DEFAULT_PAGE_SIZE = 20;
-
-function takeFirst(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function normalizeRegionKey(rawValue: string | string[] | undefined) {
-  const value = takeFirst(rawValue)?.trim().toLowerCase() ?? '';
-  return value || null;
-}
-
-function hasRegion(regions: XTrendRegionOption[], regionKey: string | null) {
-  if (!regionKey) return false;
-  return regions.some((item) => item.regionKey === regionKey);
-}
 
 export interface XTrendPageData {
   focusRegion: string;
@@ -60,8 +49,13 @@ export async function buildXTrendPageData(
       };
     }
 
-    const requestedRegion = normalizeRegionKey(readSearchParamRaw(rawSearchParams, 'region'));
-    const focusRegion = hasRegion(regions, requestedRegion) ? requestedRegion ?? 'all' : 'all';
+    const requestedRegion = normalizeLowercaseKey(readSearchParamRaw(rawSearchParams, 'region'));
+    const focusRegion = resolvePreferredCode({
+      items: regions,
+      candidates: [requestedRegion],
+      getCode: (item) => item.regionKey,
+      fallback: 'all',
+    });
 
     return {
       focusRegion,
@@ -74,15 +68,7 @@ export async function buildXTrendPageData(
     };
   } catch (error) {
     logServerError('x-trends/page-data', error);
-    let errorMessage: string = t.errorLoad;
-    const category = classifyRuntimeError(error);
-    if (category === 'missing_db_env') {
-      errorMessage = t.errorNoDbEnv;
-    } else if (category === 'missing_table') {
-      errorMessage = t.errorNoTable;
-    } else if (category === 'query_failed' || category === 'network' || category === 'auth') {
-      errorMessage = t.errorQueryFailed;
-    }
+    const errorMessage = resolveStandardPageDataErrorMessage(error, t);
 
     return {
       focusRegion: 'all',

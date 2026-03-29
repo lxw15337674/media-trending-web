@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
-import { classifyRuntimeError, logServerError } from '@/lib/server/runtime-error';
+import { resolveStandardPageDataErrorMessage } from '@/lib/page-data/runtime-error-message';
+import { logServerError } from '@/lib/server/runtime-error';
 import type { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 import { getLatestYouTubeLiveSnapshot } from '@/lib/youtube-live/db';
 
@@ -35,18 +36,7 @@ export async function buildYouTubeLivePageData(locale: Locale): Promise<YouTubeL
     }
   } catch (error) {
     logServerError('youtube-live/page-data', error);
-    const category = classifyRuntimeError(error);
-    if (category === 'missing_db_env') {
-      errorMessage = t.errorNoDbEnv;
-    } else if (category === 'missing_table') {
-      errorMessage = t.errorNoTable;
-    } else if (category === 'query_failed' || category === 'network' || category === 'auth') {
-      errorMessage = t.errorQueryFailed;
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-    } else {
-      errorMessage = t.errorLoad;
-    }
+    errorMessage = resolveStandardPageDataErrorMessage(error, t, { fallbackToErrorMessage: true });
   }
 
   return {

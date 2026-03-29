@@ -2,15 +2,17 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
-import { FilterCombobox } from '@/components/ui/filter-combobox';
+import { RankingFilterBar } from '@/components/rankings/RankingFilterBar';
+import { RankingFilterField } from '@/components/rankings/RankingFilterField';
+import { RankingPageShell } from '@/components/rankings/RankingPageShell';
+import { RankingStatusCard } from '@/components/rankings/RankingStatusCard';
 import { YouTubeLiveVideoCard } from '@/components/youtubehot/YouTubeLiveVideoCard';
 import type { Locale } from '@/i18n/config';
 import { getIntlLocale } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
-import { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 import { getYouTubeCategoryLabel } from '@/lib/youtube-hot/labels';
+import { YouTubeLiveItem } from '@/lib/youtube-hot/types';
 
 interface YouTubeLiveGridPageProps {
   items: YouTubeLiveItem[];
@@ -20,7 +22,6 @@ interface YouTubeLiveGridPageProps {
   jsonLd?: unknown;
 }
 
-const PAGE_SECTION_CLASS = 'mx-auto w-full px-4 pt-2 md:px-6 md:pt-6 lg:w-[80%]';
 const CARD_GRID_CLASS = 'mt-2 grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4';
 
 function normalizeLanguageCode(value: string | null | undefined) {
@@ -49,7 +50,6 @@ function formatLanguageDisplayText(normalized: string, localizedLabel: string | 
 
 export function YouTubeLiveGridPage({
   items,
-  fetchedAt,
   errorMessage,
   locale,
   jsonLd,
@@ -246,70 +246,61 @@ export function YouTubeLiveGridPage({
   }, [items, activeLanguageFilter, activeCategoryFilter]);
 
   return (
-    <main
-      suppressHydrationWarning
-      className="min-h-screen bg-gradient-to-b from-zinc-100 via-zinc-50 to-white pb-10 text-zinc-900 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:text-zinc-100"
-    >
-      {jsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /> : null}
-      <h1 className="sr-only">{t.title}</h1>
-      <section className={PAGE_SECTION_CLASS}>
-        <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
-          <CardHeader className="p-2 md:p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
-                <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <FilterCombobox
-                    options={languageFilterOptions}
-                    value={activeLanguageFilter}
-                    placeholder={t.filterLanguageSearchPlaceholder}
-                    emptyText={t.filterNoMatch}
-                    clearLabel={t.clearSearch}
-                    onValueChange={(nextValue) => updateFilter('language', nextValue)}
-                  />
-                </div>
-                <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <FilterCombobox
-                    options={categoryFilterOptions}
-                    value={activeCategoryFilter}
-                    placeholder={t.filterCategorySearchPlaceholder}
-                    emptyText={t.filterNoMatch}
-                    clearLabel={t.clearSearch}
-                    onValueChange={(nextValue) => updateFilter('category', nextValue)}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {errorMessage ? (
-          <Card className="mt-2 border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
-            <CardContent className="p-4 text-base text-red-700 dark:text-red-200">{errorMessage}</CardContent>
-          </Card>
-        ) : null}
-
-        {!errorMessage && filteredItems.length === 0 ? (
-          <Card className="mt-2 border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80">
-            <CardContent className="p-10 text-center text-zinc-500 dark:text-zinc-400">
-              {t.emptyState}
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {filteredItems.length > 0 ? (
-          <div className={CARD_GRID_CLASS}>
-            {filteredItems.map((item) => (
-              <YouTubeLiveVideoCard
-                key={item.videoId}
-                item={item}
-                locale={locale}
-                categoryLabel={formatCategoryLabel(item)}
-                languageLabel={formatLanguageLabel(item.defaultAudioLanguage)}
+    <RankingPageShell title={t.title} jsonLd={jsonLd}>
+      <RankingFilterBar>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
+            <div className="w-full sm:w-[260px] xl:w-[300px]">
+              <RankingFilterField
+                label={t.filterLanguageSearchPlaceholder}
+                options={languageFilterOptions}
+                value={activeLanguageFilter}
+                placeholder={t.filterLanguageSearchPlaceholder}
+                emptyText={t.filterNoMatch}
+                clearLabel={t.clearSearch}
+                onValueChange={(nextValue) => updateFilter('language', nextValue)}
               />
-            ))}
+            </div>
+            <div className="w-full sm:w-[260px] xl:w-[300px]">
+              <RankingFilterField
+                label={t.filterCategorySearchPlaceholder}
+                options={categoryFilterOptions}
+                value={activeCategoryFilter}
+                placeholder={t.filterCategorySearchPlaceholder}
+                emptyText={t.filterNoMatch}
+                clearLabel={t.clearSearch}
+                onValueChange={(nextValue) => updateFilter('category', nextValue)}
+              />
+            </div>
           </div>
-        ) : null}
-      </section>
-    </main>
+        </div>
+      </RankingFilterBar>
+
+      {errorMessage ? (
+        <RankingStatusCard variant="error" className="mt-2">
+          {errorMessage}
+        </RankingStatusCard>
+      ) : null}
+
+      {!errorMessage && filteredItems.length === 0 ? (
+        <RankingStatusCard variant="empty" className="mt-2">
+          {t.emptyState}
+        </RankingStatusCard>
+      ) : null}
+
+      {filteredItems.length > 0 ? (
+        <div className={CARD_GRID_CLASS}>
+          {filteredItems.map((item) => (
+            <YouTubeLiveVideoCard
+              key={item.videoId}
+              item={item}
+              locale={locale}
+              categoryLabel={formatCategoryLabel(item)}
+              languageLabel={formatLanguageLabel(item.defaultAudioLanguage)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </RankingPageShell>
   );
 }

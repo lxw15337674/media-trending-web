@@ -2,9 +2,25 @@ import { TikTokHashtagTarget } from './types';
 
 const DEFAULT_TARGET_COUNTRIES = [
   { countryCode: 'US', countryName: 'United States' },
+  { countryCode: 'ID', countryName: 'Indonesia' },
+  { countryCode: 'BR', countryName: 'Brazil' },
+  { countryCode: 'MX', countryName: 'Mexico' },
+  { countryCode: 'PK', countryName: 'Pakistan' },
+  { countryCode: 'PH', countryName: 'Philippines' },
+  { countryCode: 'VN', countryName: 'Vietnam' },
+  { countryCode: 'TR', countryName: 'Turkey' },
+  { countryCode: 'SA', countryName: 'Saudi Arabia' },
   { countryCode: 'GB', countryName: 'United Kingdom' },
   { countryCode: 'JP', countryName: 'Japan' },
-  { countryCode: 'ID', countryName: 'Indonesia' },
+  { countryCode: 'KR', countryName: 'South Korea' },
+  { countryCode: 'TH', countryName: 'Thailand' },
+  { countryCode: 'MY', countryName: 'Malaysia' },
+  { countryCode: 'SG', countryName: 'Singapore' },
+  { countryCode: 'DE', countryName: 'Germany' },
+  { countryCode: 'FR', countryName: 'France' },
+  { countryCode: 'CA', countryName: 'Canada' },
+  { countryCode: 'AU', countryName: 'Australia' },
+  { countryCode: 'AE', countryName: 'United Arab Emirates' },
 ] as const;
 
 function buildTarget(input: {

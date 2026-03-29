@@ -5,7 +5,6 @@ import {
   getLatestYouTubeMusicWeeklyTopSongsSnapshot,
   listLatestYouTubeMusicWeeklyCountries,
 } from './db';
-import { YouTubeMusicChartsClient } from './client';
 import type { YouTubeMusicChartItem, YouTubeMusicCountryOption } from './types';
 import type { SearchParamsInput } from '@/lib/server/search-params';
 import { readSearchParamRaw } from '@/lib/server/search-params';
@@ -49,9 +48,6 @@ export async function buildYouTubeMusicPageData(
 
   try {
     countries = await listLatestYouTubeMusicWeeklyCountries();
-    if (countries.length === 0) {
-      countries = await new YouTubeMusicChartsClient().listAvailableWeeklyTopSongsCountries();
-    }
 
     const requestedCountry = normalizeCountryValue(readSearchParamRaw(rawSearchParams, 'country'));
     country = countries.some((item) => item.countryCode === requestedCountry) ? requestedCountry : 'global';

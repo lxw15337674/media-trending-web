@@ -212,7 +212,6 @@ export function ComboboxInput({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const displayValue = open ? query : query || selectedLabel;
   const normalizedQuery = normalizeText(query);
-  const normalizedSelectedLabel = normalizeText(selectedLabel);
   const showClearButton = open && !disabled && normalizedQuery;
 
   return (
@@ -316,7 +315,7 @@ export function ComboboxEmpty({ className, children }: ComboboxEmptyProps) {
 
 interface ComboboxListProps {
   className?: string;
-  children: (item: any) => ReactNode;
+  children: (item: unknown) => ReactNode;
 }
 
 export function ComboboxList({ className, children }: ComboboxListProps) {

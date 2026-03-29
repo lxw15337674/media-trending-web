@@ -26,7 +26,6 @@ export function YouTubeMusicGridPage({
   items,
   fetchedAt,
   chartEndDate,
-  itemCount,
   errorMessage,
   locale,
   jsonLd,

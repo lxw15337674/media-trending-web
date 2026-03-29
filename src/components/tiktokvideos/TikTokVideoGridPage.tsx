@@ -2,9 +2,12 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useEffect, useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
-import { FilterCombobox } from '@/components/ui/filter-combobox';
+import { RankingFilterBar } from '@/components/rankings/RankingFilterBar';
+import { RankingFilterField } from '@/components/rankings/RankingFilterField';
+import { RankingMetaRow } from '@/components/rankings/RankingMetaRow';
+import { RankingPageShell } from '@/components/rankings/RankingPageShell';
+import { RankingStatusCard } from '@/components/rankings/RankingStatusCard';
 import { TikTokVideoCard } from '@/components/tiktokvideos/TikTokVideoCard';
 import { formatRelativeUpdate } from '@/i18n/format';
 import { getMessages } from '@/i18n/messages';
@@ -18,7 +21,6 @@ interface TikTokVideoGridPageProps {
   userCountry?: string | null;
 }
 
-const PAGE_SECTION_CLASS = 'mx-auto w-full px-4 pt-2 md:px-6 md:pt-6 lg:w-[80%]';
 const CARD_GRID_CLASS = 'mt-2 grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4';
 
 function buildCountryOptions(
@@ -77,58 +79,6 @@ function buildSortOptions(
   })) satisfies ComboboxOption[];
 }
 
-function CompactLabel({ children }: { children: string }) {
-  return <div className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{children}</div>;
-}
-
-function FilterField({
-  label,
-  options,
-  value,
-  placeholder,
-  emptyText,
-  clearLabel,
-  disabled = false,
-  onValueChange,
-}: {
-  label: string;
-  options: readonly ComboboxOption[];
-  value: string;
-  placeholder: string;
-  emptyText: string;
-  clearLabel?: string;
-  disabled?: boolean;
-  onValueChange: (value: string) => void;
-}) {
-  return (
-    <div className="w-full">
-      <CompactLabel>{label}</CompactLabel>
-      <FilterCombobox
-        options={options}
-        value={value}
-        placeholder={placeholder}
-        emptyText={emptyText}
-        clearLabel={clearLabel}
-        disabled={disabled}
-        onValueChange={onValueChange}
-      />
-    </div>
-  );
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className="text-zinc-400 dark:text-zinc-500">{label}</span>
-      <span className="text-zinc-600 dark:text-zinc-300">{value}</span>
-    </span>
-  );
-}
-
-function SummaryDivider() {
-  return <span className="text-zinc-300 dark:text-zinc-700">·</span>;
-}
-
 export function TikTokVideoGridPage({ initialData, userCountry }: TikTokVideoGridPageProps) {
   const t = getMessages(initialData.locale).tiktokVideos;
   const pathname = usePathname();
@@ -180,106 +130,96 @@ export function TikTokVideoGridPage({ initialData, userCountry }: TikTokVideoGri
   };
 
   return (
-    <main
-      suppressHydrationWarning
-      className="min-h-screen bg-gradient-to-b from-zinc-100 via-zinc-50 to-white pb-10 text-zinc-950 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 dark:text-zinc-100"
-    >
-      <h1 className="sr-only">{t.title}</h1>
-
-      <section className={PAGE_SECTION_CLASS}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600 dark:text-rose-300">
-              TikTok Creative Center
-            </div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 md:text-3xl">
-              {t.title}
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{t.subtitle}</p>
+    <RankingPageShell title={t.title}>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-3xl">
+          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600 dark:text-rose-300">
+            TikTok Creative Center
           </div>
-          <a
-            href={initialData.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700"
-          >
-            {t.openOfficialSource}
-          </a>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 md:text-3xl">
+            {t.title}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{t.subtitle}</p>
         </div>
+        <a
+          href={initialData.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:text-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-700"
+        >
+          {t.openOfficialSource}
+        </a>
+      </div>
 
-        <Card className="mt-3 border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
-          <CardHeader className="p-2 md:p-3">
-            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 xl:grid-cols-3">
-              <FilterField
-                label={t.filterCountryLabel}
-                options={countryOptions}
-                value={selectedCountry}
-                placeholder={t.filterCountrySearchPlaceholder}
-                emptyText={t.filterNoMatch}
-                clearLabel={t.clearSearch}
-                disabled={countryOptions.length === 0}
-                onValueChange={onCountryChange}
-              />
-              <FilterField
-                label={t.periodFilterLabel}
-                options={periodOptions}
-                value={String(initialData.period)}
-                placeholder={t.periodFilterLabel}
-                emptyText={t.filterNoMatch}
-                clearLabel={t.clearSearch}
-                disabled={periodOptions.length === 0}
-                onValueChange={(value) => onPeriodChange(Number(value))}
-              />
-              <FilterField
-                label={t.sortFilterLabel}
-                options={sortOptions}
-                value={initialData.orderBy}
-                placeholder={t.sortFilterLabel}
-                emptyText={t.filterNoMatch}
-                clearLabel={t.clearSearch}
-                disabled={sortOptions.length === 0}
-                onValueChange={onSortChange}
-              />
-            </div>
-          </CardHeader>
-        </Card>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-          <SummaryItem label={t.currentCountryLabel} value={localizedCountryName} />
-          <SummaryDivider />
-          <SummaryItem label={t.currentPeriodLabel} value={getPeriodLabel(initialData.period, t)} />
-          <SummaryDivider />
-          <SummaryItem label={t.currentSortLabel} value={getSortLabel(initialData.orderBy, t)} />
-          <SummaryDivider />
-          <SummaryItem label={t.itemsLabel} value={String(initialData.items.length)} />
-          <SummaryDivider />
-          <SummaryItem label={t.updatedAtLabel} value={formatRelativeUpdate(initialData.generatedAt, initialData.locale)} />
+      <RankingFilterBar className="mt-3">
+        <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 xl:grid-cols-3">
+          <RankingFilterField
+            label={t.filterCountryLabel}
+            options={countryOptions}
+            value={selectedCountry}
+            placeholder={t.filterCountrySearchPlaceholder}
+            emptyText={t.filterNoMatch}
+            clearLabel={t.clearSearch}
+            disabled={countryOptions.length === 0}
+            onValueChange={onCountryChange}
+          />
+          <RankingFilterField
+            label={t.periodFilterLabel}
+            options={periodOptions}
+            value={String(initialData.period)}
+            placeholder={t.periodFilterLabel}
+            emptyText={t.filterNoMatch}
+            clearLabel={t.clearSearch}
+            disabled={periodOptions.length === 0}
+            onValueChange={(value) => onPeriodChange(Number(value))}
+          />
+          <RankingFilterField
+            label={t.sortFilterLabel}
+            options={sortOptions}
+            value={initialData.orderBy}
+            placeholder={t.sortFilterLabel}
+            emptyText={t.filterNoMatch}
+            clearLabel={t.clearSearch}
+            disabled={sortOptions.length === 0}
+            onValueChange={(value) => onSortChange(value as TikTokVideoOrderBy)}
+          />
         </div>
+      </RankingFilterBar>
 
-        {initialData.errorMessage ? (
-          <Card className="mt-2 border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
-            <CardContent className="p-4 text-base text-red-700 dark:text-red-200">{initialData.errorMessage}</CardContent>
-          </Card>
-        ) : null}
+      <RankingMetaRow
+        className="mt-3"
+        items={[
+          { label: t.currentCountryLabel, value: localizedCountryName },
+          { label: t.currentPeriodLabel, value: getPeriodLabel(initialData.period, t) },
+          { label: t.currentSortLabel, value: getSortLabel(initialData.orderBy, t) },
+          { label: t.itemsLabel, value: String(initialData.items.length) },
+          { label: t.updatedAtLabel, value: formatRelativeUpdate(initialData.generatedAt, initialData.locale) },
+        ]}
+      />
 
-        {!initialData.errorMessage && initialData.items.length === 0 ? (
-          <Card className="mt-2 border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/70">
-            <CardContent className="p-10 text-center text-zinc-500 dark:text-zinc-400">{t.emptyState}</CardContent>
-          </Card>
-        ) : null}
+      {initialData.errorMessage ? (
+        <RankingStatusCard variant="error" className="mt-2">
+          {initialData.errorMessage}
+        </RankingStatusCard>
+      ) : null}
 
-        {initialData.items.length > 0 ? (
-          <div className={CARD_GRID_CLASS}>
-            {initialData.items.map((item) => (
-              <TikTokVideoCard
-                key={`${item.snapshotHour}-${item.countryCode}-${item.period}-${item.orderBy}-${item.rank}-${item.videoId}`}
-                item={item}
-                locale={initialData.locale}
-              />
-            ))}
-          </div>
-        ) : null}
-      </section>
-    </main>
+      {!initialData.errorMessage && initialData.items.length === 0 ? (
+        <RankingStatusCard variant="empty" className="mt-2">
+          {t.emptyState}
+        </RankingStatusCard>
+      ) : null}
+
+      {initialData.items.length > 0 ? (
+        <div className={CARD_GRID_CLASS}>
+          {initialData.items.map((item) => (
+            <TikTokVideoCard
+              key={`${item.snapshotHour}-${item.countryCode}-${item.period}-${item.orderBy}-${item.rank}-${item.videoId}`}
+              item={item}
+              locale={initialData.locale}
+            />
+          ))}
+        </div>
+      ) : null}
+    </RankingPageShell>
   );
 }

@@ -1,12 +1,12 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
-import { ensureTikTokHashtagTrendSchema } from './ensure-schema';
+import { parseJsonObject, toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { nowUtcIso } from '@/lib/db/time';
 import type {
   TikTokHashtagCountryFilter,
   TikTokHashtagCreatorPreview,
   TikTokHashtagDetail,
   TikTokHashtagLatestBatch,
-  TikTokHashtagQueryItem,
   TikTokHashtagQueryResult,
   TikTokHashtagTargetResult,
   TikTokHashtagTrendPoint,
@@ -52,39 +52,6 @@ interface QueryRow {
   trendPointsJson: string | null;
   creatorPreviewJson: string | null;
   detailJson: string | null;
-}
-
-function nowUtcIso() {
-  return new Date().toISOString();
-}
-
-function toJson(value: unknown) {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function parseJsonObject<T>(value: string | null): T | null {
-  if (!value) return null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
 }
 
 function parseTrendPoints(value: string | null): TikTokHashtagTrendPoint[] {
@@ -359,7 +326,6 @@ async function updateBatchSummary(batchId: number, targetCountryCount: number) {
 }
 
 export async function saveTikTokHashtagHourlyResults(snapshotHour: string, results: TikTokHashtagTargetResult[]) {
-  await ensureTikTokHashtagTrendSchema();
   const batchId = await upsertBatch(snapshotHour);
   let success = 0;
   let failed = 0;
@@ -410,7 +376,6 @@ export async function saveTikTokHashtagHourlyResults(snapshotHour: string, resul
 }
 
 export async function getLatestPublishedTikTokHashtagBatch(): Promise<TikTokHashtagLatestBatch | null> {
-  await ensureTikTokHashtagTrendSchema();
   const rows = await db.all<BatchMetaRow>(sql`
     SELECT
       id,
@@ -429,7 +394,6 @@ export async function getLatestPublishedTikTokHashtagBatch(): Promise<TikTokHash
 }
 
 export async function listLatestTikTokHashtagCountries(): Promise<TikTokHashtagCountryFilter[]> {
-  await ensureTikTokHashtagTrendSchema();
   const batch = await getLatestPublishedTikTokHashtagBatch();
   if (!batch) return [];
 
@@ -451,7 +415,6 @@ export async function listLatestTikTokHashtagCountries(): Promise<TikTokHashtagC
 }
 
 export async function queryLatestTikTokHashtags(countryCode: string): Promise<TikTokHashtagQueryResult> {
-  await ensureTikTokHashtagTrendSchema();
   const normalizedCountryCode = countryCode.trim().toUpperCase();
   const batch = await getLatestPublishedTikTokHashtagBatch();
 
@@ -535,7 +498,6 @@ export async function queryLatestTikTokHashtags(countryCode: string): Promise<Ti
 }
 
 export async function getLatestTikTokHashtagSnapshotHealth(countryCode: string) {
-  await ensureTikTokHashtagTrendSchema();
   const rows = await db.all<
     {
       snapshotHour: string;
@@ -571,7 +533,6 @@ export async function getLatestTikTokHashtagSnapshotHealth(countryCode: string) 
 }
 
 export async function countLatestTikTokHashtagCountries() {
-  await ensureTikTokHashtagTrendSchema();
   const batch = await getLatestPublishedTikTokHashtagBatch();
   if (!batch) return 0;
 

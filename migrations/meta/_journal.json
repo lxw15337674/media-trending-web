@@ -22,6 +22,13 @@
       "when": 1774780060686,
       "tag": "0002_worthless_wind_dancer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1774788892728,
+      "tag": "0003_spotty_electro",
+      "breakpoints": true
     }
   ]
 }

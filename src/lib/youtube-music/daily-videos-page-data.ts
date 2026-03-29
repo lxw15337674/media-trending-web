@@ -7,7 +7,6 @@ import {
   getLatestYouTubeMusicDailyVideosSnapshot,
   listLatestYouTubeMusicDailyVideoCountries,
 } from './daily-videos-db';
-import { YouTubeMusicChartsClient } from './client';
 import type { YouTubeMusicCountryOption, YouTubeMusicDailyVideoItem } from './types';
 
 export interface YouTubeMusicDailyVideosPageData {
@@ -49,9 +48,6 @@ export async function buildYouTubeMusicDailyVideosPageData(
 
   try {
     countries = await listLatestYouTubeMusicDailyVideoCountries();
-    if (countries.length === 0) {
-      countries = await new YouTubeMusicChartsClient().listAvailableDailyTopVideosCountries();
-    }
 
     const requestedCountry = normalizeCountryValue(readSearchParamRaw(rawSearchParams, 'country'));
     country = countries.some((item) => item.countryCode === requestedCountry) ? requestedCountry : 'global';

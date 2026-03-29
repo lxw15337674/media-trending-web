@@ -114,7 +114,7 @@ function parseJsonTargets(raw: string) {
 function loadDefaultTargetsFromCode() {
   const locale = process.env.TIKTOK_VIDEO_LOCALE?.trim() || 'en';
   const periods = parseNumberList(process.env.TIKTOK_VIDEO_PERIODS) ?? [...TIKTOK_VIDEO_PERIOD_OPTIONS];
-  const orderByList = parseStringList(process.env.TIKTOK_VIDEO_SORTS) ?? [...TIKTOK_VIDEO_ORDER_OPTIONS];
+  const orderByList = parseStringList(process.env.TIKTOK_VIDEO_SORTS) ?? ['vv'];
   const browserExecutablePath = process.env.TIKTOK_VIDEO_BROWSER_EXECUTABLE_PATH?.trim() || null;
 
   return DEFAULT_TARGET_COUNTRIES.map((target) =>

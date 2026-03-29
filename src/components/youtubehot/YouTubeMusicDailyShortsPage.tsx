@@ -30,7 +30,6 @@ export function YouTubeMusicDailyShortsPage({
   items,
   fetchedAt,
   chartEndDate,
-  itemCount,
   errorMessage,
   locale,
   jsonLd,

@@ -7,7 +7,6 @@ import {
   getLatestYouTubeMusicDailyShortsSongsSnapshot,
   listLatestYouTubeMusicDailyShortsCountries,
 } from './daily-shorts-db';
-import { YouTubeMusicChartsClient } from './client';
 import type { YouTubeMusicChartItem, YouTubeMusicCountryOption } from './types';
 
 export interface YouTubeMusicDailyShortsSongsPageData {
@@ -49,9 +48,6 @@ export async function buildYouTubeMusicDailyShortsSongsPageData(
 
   try {
     countries = await listLatestYouTubeMusicDailyShortsCountries();
-    if (countries.length === 0) {
-      countries = await new YouTubeMusicChartsClient().listAvailableDailyShortsSongsCountries();
-    }
 
     const requestedCountry = normalizeCountryValue(readSearchParamRaw(rawSearchParams, 'country'));
     country = countries.some((item) => item.countryCode === requestedCountry) ? requestedCountry : 'global';

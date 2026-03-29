@@ -1,12 +1,12 @@
-import { config as loadEnv } from 'dotenv';
+import { exitIfFailures, printJsonPayload } from '@/../scripts/_shared/cli-output';
+import { parseCountryList, parsePositiveNumber, parseSnapshotHourArg } from '@/../scripts/_shared/cli-parsers';
+import { loadScriptEnv } from '@/../scripts/_shared/load-env';
 import { crawlTikTokHashtagTargets } from '@/lib/tiktok-hashtag-trends/crawler';
 import { loadTikTokHashtagTargetsFromEnv } from '@/lib/tiktok-hashtag-trends/targets';
 import { parseSnapshotHour, toSnapshotHour } from '@/lib/tiktok-hashtag-trends/time';
 import type { TikTokHashtagTarget, TikTokHashtagTargetResult } from '@/lib/tiktok-hashtag-trends/types';
 
-loadEnv({ path: '.env' });
-loadEnv({ path: '.env.local', override: true });
-loadEnv({ path: '.dev.vars', override: true });
+loadScriptEnv();
 
 interface CliOptions {
   snapshotHour: string;
@@ -19,35 +19,13 @@ interface CliOptions {
   jsonOnly: boolean;
 }
 
-function parsePositiveNumber(rawValue: string | undefined, fallback: number, min: number, max: number) {
-  const parsed = Number(rawValue);
-  if (!Number.isFinite(parsed)) return fallback;
-  const normalized = Math.floor(parsed);
-  if (normalized < min) return min;
-  if (normalized > max) return max;
-  return normalized;
-}
-
-function parseCountryList(rawValue: string | undefined) {
-  if (!rawValue) return null;
-  const countryCodes = Array.from(
-    new Set(
-      rawValue
-        .split(',')
-        .map((value) => value.trim().toUpperCase())
-        .filter((value) => /^[A-Z]{2}$/.test(value)),
-    ),
-  );
-  return countryCodes.length ? countryCodes : null;
-}
-
 function parseCliArgs(): CliOptions {
   const args = process.argv.slice(2);
-  const hourArg = args.find((arg) => arg.startsWith('--hour='))?.split('=')[1];
-  const snapshotHour = hourArg ? parseSnapshotHour(hourArg) : toSnapshotHour();
-  if (!snapshotHour) {
-    throw new Error('Invalid --hour format. Example: --hour=2026-03-29 17:00:00');
-  }
+  const snapshotHour = parseSnapshotHourArg(args, {
+    parseSnapshotHour,
+    toSnapshotHour,
+    example: '2026-03-29 17:00:00',
+  });
 
   return {
     snapshotHour,
@@ -175,18 +153,13 @@ async function main() {
     );
   }
 
-  const payload = {
+  printJsonPayload({
     summary,
     saveSummary,
     availableCountries: crawlResult.availableCountries,
     results: crawlResult.results,
-  };
-
-  console.log(JSON.stringify(payload, null, 2));
-
-  if (summary.failedCount > 0) {
-    process.exit(1);
-  }
+  });
+  exitIfFailures(summary.failedCount);
 }
 
 main().catch((error) => {

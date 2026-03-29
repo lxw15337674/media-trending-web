@@ -1,13 +1,13 @@
-import { config as loadEnv } from 'dotenv';
+import { exitIfFailures, printJsonPayload } from '@/../scripts/_shared/cli-output';
+import { parseCountryList, parseEnumList, parseNumberList, parsePositiveNumber, parseSnapshotHourArg } from '@/../scripts/_shared/cli-parsers';
+import { loadScriptEnv } from '@/../scripts/_shared/load-env';
 import { parseSnapshotHour, toSnapshotHour } from '@/lib/tiktok-hashtag-trends/time';
 import { crawlTikTokVideoTargets } from '@/lib/tiktok-videos/crawler';
 import { saveTikTokVideoHourlyResults } from '@/lib/tiktok-videos/db';
 import { loadTikTokVideoTargetsFromEnv } from '@/lib/tiktok-videos/targets';
 import type { TikTokVideoOrderBy, TikTokVideoTarget, TikTokVideoTargetResult } from '@/lib/tiktok-videos/types';
 
-loadEnv({ path: '.env' });
-loadEnv({ path: '.env.local', override: true });
-loadEnv({ path: '.dev.vars', override: true });
+loadScriptEnv();
 
 interface CliOptions {
   snapshotHour: string;
@@ -22,70 +22,19 @@ interface CliOptions {
   jsonOnly: boolean;
 }
 
-function parsePositiveNumber(rawValue: string | undefined, fallback: number, min: number, max: number) {
-  const parsed = Number(rawValue);
-  if (!Number.isFinite(parsed)) return fallback;
-  const normalized = Math.floor(parsed);
-  if (normalized < min) return min;
-  if (normalized > max) return max;
-  return normalized;
-}
-
-function parseCountryList(rawValue: string | undefined) {
-  if (!rawValue) return null;
-  const countryCodes = Array.from(
-    new Set(
-      rawValue
-        .split(',')
-        .map((value) => value.trim().toUpperCase())
-        .filter((value) => /^[A-Z]{2}$/.test(value)),
-    ),
-  );
-  return countryCodes.length ? countryCodes : null;
-}
-
-function parsePeriodList(rawValue: string | undefined) {
-  if (!rawValue) return null;
-  const periods = Array.from(
-    new Set(
-      rawValue
-        .split(',')
-        .map((value) => Number(value.trim()))
-        .filter((value) => Number.isFinite(value))
-        .map((value) => Math.floor(value))
-        .filter((value) => value > 0 && value <= 365),
-    ),
-  );
-  return periods.length ? periods : null;
-}
-
-function parseSortList(rawValue: string | undefined) {
-  if (!rawValue) return null;
-  const allowed = new Set<TikTokVideoOrderBy>(['vv', 'like', 'comment', 'repost']);
-  const sorts = Array.from(
-    new Set(
-      rawValue
-        .split(',')
-        .map((value) => value.trim().toLowerCase())
-        .filter((value): value is TikTokVideoOrderBy => allowed.has(value as TikTokVideoOrderBy)),
-    ),
-  );
-  return sorts.length ? sorts : null;
-}
-
 function parseCliArgs(): CliOptions {
   const args = process.argv.slice(2);
-  const hourArg = args.find((arg) => arg.startsWith('--hour='))?.split('=')[1];
-  const snapshotHour = hourArg ? parseSnapshotHour(hourArg) : toSnapshotHour();
-  if (!snapshotHour) {
-    throw new Error('Invalid --hour format. Example: --hour=2026-03-29 17:00:00');
-  }
+  const snapshotHour = parseSnapshotHourArg(args, {
+    parseSnapshotHour,
+    toSnapshotHour,
+    example: '2026-03-29 17:00:00',
+  });
 
   return {
     snapshotHour,
     countryCodes: parseCountryList(args.find((arg) => arg.startsWith('--countries='))?.split('=')[1]),
-    periods: parsePeriodList(args.find((arg) => arg.startsWith('--periods='))?.split('=')[1]),
-    sorts: parseSortList(args.find((arg) => arg.startsWith('--sorts='))?.split('=')[1]),
+    periods: parseNumberList(args.find((arg) => arg.startsWith('--periods='))?.split('=')[1], 1, 365),
+    sorts: parseEnumList(args.find((arg) => arg.startsWith('--sorts='))?.split('=')[1], ['vv', 'like', 'comment', 'repost']),
     limit: parsePositiveNumber(args.find((arg) => arg.startsWith('--limit='))?.split('=')[1], 20, 1, 20),
     maxPages: parsePositiveNumber(args.find((arg) => arg.startsWith('--max-pages='))?.split('=')[1], 5, 1, 25),
     headless: !args.includes('--headed'),
@@ -220,21 +169,12 @@ async function main() {
     );
   }
 
-  console.log(
-    JSON.stringify(
-      {
-        summary,
-        saveSummary,
-        results: crawlResult.results,
-      },
-      null,
-      2,
-    ),
-  );
-
-  if (summary.failedCount > 0) {
-    process.exit(1);
-  }
+  printJsonPayload({
+    summary,
+    saveSummary,
+    results: crawlResult.results,
+  });
+  exitIfFailures(summary.failedCount);
 }
 
 main().catch((error) => {

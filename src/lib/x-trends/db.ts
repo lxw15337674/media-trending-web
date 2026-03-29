@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
-import { ensureXTrendSchema } from './ensure-schema';
+import { toBooleanInt, toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { nowUtcIso } from '@/lib/db/time';
 import {
   type XTrendHistoryPoint,
   type XTrendHistorySeries,
@@ -46,34 +47,6 @@ interface RegionRow {
   regionKey: string;
   regionLabel: string;
   itemCount: number;
-}
-
-function nowUtcIso() {
-  return new Date().toISOString();
-}
-
-function toJson(value: unknown) {
-  if (value == null) return null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toNullableNumber(value: unknown) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toBooleanInt(value: unknown) {
-  return toNumber(value, 0) === 1;
 }
 
 function mapBatchRow(row: BatchMetaRow | null | undefined): XTrendLatestBatch | null {
@@ -274,7 +247,6 @@ async function updateBatchSummary(batchId: number, targetRegionCount: number) {
 }
 
 export async function saveXTrendHourlyResults(snapshotHour: string, results: XTrendRegionResult[]) {
-  await ensureXTrendSchema();
   const batchId = await upsertBatch(snapshotHour);
   let success = 0;
   let failed = 0;
@@ -323,7 +295,6 @@ export async function saveXTrendHourlyResults(snapshotHour: string, results: XTr
 }
 
 export async function getLatestPublishedXTrendBatch(): Promise<XTrendLatestBatch | null> {
-  await ensureXTrendSchema();
   const rows = await db.all<BatchMetaRow>(sql`
     SELECT
       id,
@@ -342,7 +313,6 @@ export async function getLatestPublishedXTrendBatch(): Promise<XTrendLatestBatch
 }
 
 export async function listLatestXTrendRegions() {
-  await ensureXTrendSchema();
   const batch = await getLatestPublishedXTrendBatch();
   if (!batch) return [];
 
@@ -368,7 +338,6 @@ export async function queryLatestXTrends(params: {
   page?: number;
   pageSize?: number;
 }): Promise<XTrendQueryResult> {
-  await ensureXTrendSchema();
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(params.pageSize ?? 30)));
   const offset = (page - 1) * pageSize;
@@ -441,7 +410,6 @@ export async function queryLatestXTrendRegionGroups(limitPerRegion = 20): Promis
   batch: XTrendLatestBatch | null;
   groups: XTrendRegionGroup[];
 }> {
-  await ensureXTrendSchema();
   const batch = await getLatestPublishedXTrendBatch();
   const normalizedLimit = Math.min(50, Math.max(1, Math.floor(limitPerRegion)));
 
@@ -513,7 +481,6 @@ export async function queryLatestXTrendRegionGroups(limitPerRegion = 20): Promis
 }
 
 export async function getRecentXTrendHistory(regionKey: string, limitHours = 24): Promise<XTrendHistorySeries[]> {
-  await ensureXTrendSchema();
   const normalizedRegionKey = regionKey.trim().toLowerCase();
   const rows = await db.all<QueryRow>(sql`
     SELECT
@@ -591,7 +558,6 @@ export async function getRecentXTrendHistory(regionKey: string, limitHours = 24)
 }
 
 export async function getLatestXTrendSnapshotHealth(regionKey: string) {
-  await ensureXTrendSchema();
   const rows = await db.all<
     {
       snapshotHour: string;

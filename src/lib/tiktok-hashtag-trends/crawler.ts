@@ -99,15 +99,6 @@ function getFailureCode(error: unknown, fallback: TikTokHashtagFailureCode): Tik
   return error instanceof TikTokHashtagCrawlerError ? error.code : fallback;
 }
 
-function createEmptyTimings(): TikTokHashtagTimingMetrics {
-  return {
-    bootstrapMs: 0,
-    fetchListMs: 0,
-    enrichDetailsMs: 0,
-    totalMs: 0,
-  };
-}
-
 function buildTimings(regionStartedAt: number, bootstrapMs: number, fetchListMs: number, enrichDetailsMs: number) {
   return {
     bootstrapMs,
