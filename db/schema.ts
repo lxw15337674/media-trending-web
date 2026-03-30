@@ -164,6 +164,70 @@ export const youtubeMusicChartItems = sqliteTable(
   }),
 );
 
+export const appleMusicChartSnapshots = sqliteTable(
+  'apple_music_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    periodType: text('period_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    chartEndDate: text('chart_end_date').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    playlistId: text('playlist_id').notNull(),
+    playlistSlug: text('playlist_slug').notNull(),
+    playlistTitle: text('playlist_title').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_apple_music_chart_snapshots_unique').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    chartLatestIdx: index('idx_apple_music_chart_snapshots_latest').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    statusIdx: index('idx_apple_music_chart_snapshots_status').on(table.status, table.chartEndDate),
+  }),
+);
+
+export const appleMusicChartItems = sqliteTable(
+  'apple_music_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => appleMusicChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    trackName: text('track_name').notNull(),
+    artistNames: text('artist_names').notNull(),
+    appleSongId: text('apple_song_id').notNull(),
+    appleSongUrl: text('apple_song_url').notNull(),
+    durationMs: integer('duration_ms'),
+    thumbnailUrl: text('thumbnail_url'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_apple_music_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotSongUnique: uniqueIndex('idx_apple_music_chart_items_snapshot_song').on(table.snapshotId, table.appleSongId),
+    snapshotIdx: index('idx_apple_music_chart_items_snapshot').on(table.snapshotId),
+    songIdx: index('idx_apple_music_chart_items_song').on(table.appleSongId),
+    trackIdx: index('idx_apple_music_chart_items_track').on(table.trackName),
+  }),
+);
+
 export const youtubeMusicVideoDailySnapshots = sqliteTable(
   'youtube_music_video_daily_snapshots',
   {
@@ -577,6 +641,10 @@ export type YouTubeMusicChartSnapshot = typeof youtubeMusicChartSnapshots.$infer
 export type NewYouTubeMusicChartSnapshot = typeof youtubeMusicChartSnapshots.$inferInsert;
 export type YouTubeMusicChartItem = typeof youtubeMusicChartItems.$inferSelect;
 export type NewYouTubeMusicChartItem = typeof youtubeMusicChartItems.$inferInsert;
+export type AppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferSelect;
+export type NewAppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferInsert;
+export type AppleMusicChartItem = typeof appleMusicChartItems.$inferSelect;
+export type NewAppleMusicChartItem = typeof appleMusicChartItems.$inferInsert;
 export type YouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferSelect;
 export type NewYouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferInsert;
 export type YouTubeMusicVideoDailyItem = typeof youtubeMusicVideoDailyItems.$inferSelect;

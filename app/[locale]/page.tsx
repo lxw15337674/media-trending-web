@@ -74,6 +74,12 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
       description: messages.home.musicDescription,
     },
     {
+      href: `/${locale}/apple-music`,
+      platform: 'Apple Music',
+      label: messages.common.navAppleMusic,
+      description: messages.home.appleMusicDescription,
+    },
+    {
       href: `/${locale}/youtube-music/videos-daily`,
       platform: 'YouTube Music',
       label: messages.youtubeMusicVideosDaily.title,

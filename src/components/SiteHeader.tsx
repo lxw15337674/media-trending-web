@@ -36,6 +36,7 @@ function isLocaleSwitchablePath(barePath: string) {
     barePath === '/' ||
     barePath === '/youtube-trending' ||
     barePath.startsWith('/youtube-music') ||
+    barePath.startsWith('/apple-music') ||
     barePath === '/youtube-live' ||
     barePath === '/x-trending' ||
     barePath === '/tiktok-trending' ||
@@ -68,6 +69,12 @@ function SiteHeaderFrame({
       href: withLocalePrefix('/youtube-music', locale),
       label: t.navYouTubeMusic,
       mobileLabel: t.navYouTubeMusicShort,
+    },
+    {
+      path: '/apple-music',
+      href: withLocalePrefix('/apple-music', locale),
+      label: t.navAppleMusic,
+      mobileLabel: t.navAppleMusicShort,
     },
     {
       path: '/youtube-live',

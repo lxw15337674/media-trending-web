@@ -76,12 +76,18 @@ export function TikTokTrendCard({ label, countryCode, items, locale }: TikTokTre
             >
               <span className="pt-0.5 text-[13px] font-medium tabular-nums text-zinc-500">{item.rank}</span>
               <div className="min-w-0 space-y-1">
-                <div className="truncate text-[14px] font-medium leading-5.5 text-zinc-100">#{item.hashtagName}</div>
-                <div className="flex flex-wrap items-center gap-2 text-[11px] leading-4.5 text-zinc-500">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-1.5 py-0.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 truncate text-[14px] font-medium leading-5.5 text-zinc-100">
+                    #{item.hashtagName}
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 px-1.5 py-0.5 text-[11px] leading-4.5 ${movement.tone}`}
+                  >
                     <MovementIcon className="size-3" />
                     <span>{movement.label}</span>
                   </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] leading-4.5 text-zinc-500">
                   <span>
                     {t.publishCountLabel}: {formatCompactNumber(item.publishCount, locale)}
                   </span>

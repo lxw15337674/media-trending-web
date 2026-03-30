@@ -10,6 +10,13 @@ type SupportedSnapshot =
   | YouTubeMusicDailyVideoSnapshot
   | YouTubeMusicShortsSongDailySnapshot;
 
+interface CountryChartSnapshotLike {
+  countryCode: string;
+  chartEndDate: string;
+  fetchedAt: string;
+  items: readonly unknown[];
+}
+
 interface CrawlCliOptions {
   dryRun: boolean;
   countriesArg?: string;
@@ -26,10 +33,21 @@ interface RunCrawlOptions<TSnapshot extends SupportedSnapshot> {
   topLabel: (snapshot: TSnapshot) => string;
 }
 
+interface RunSerialCountryChartCrawlOptions<TSnapshot extends CountryChartSnapshotLike> {
+  scriptName: string;
+  cliOptions: CrawlCliOptions;
+  envCountries: string | undefined;
+  discoverCountries?: () => Promise<string[]>;
+  fetchSnapshot: (countryCode: string) => Promise<TSnapshot>;
+  saveSnapshot: (snapshot: TSnapshot) => Promise<number>;
+  topLabel: (snapshot: TSnapshot) => string;
+  normalizeCountryCode?: (value: string) => string;
+}
+
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 3000, 5000];
 
-function normalizeCountryCode(value: string) {
+function normalizeYouTubeMusicCountryCode(value: string) {
   return value.trim().toLowerCase() === 'global' ? 'global' : value.trim().toUpperCase();
 }
 
@@ -45,7 +63,7 @@ export function parseMusicCrawlerCliArgs(argv: string[]) {
   } satisfies CrawlCliOptions;
 }
 
-export function parseCountryList(value: string | undefined) {
+export function parseCountryList(value: string | undefined, normalize = normalizeYouTubeMusicCountryCode) {
   if (!value) return [];
 
   return Array.from(
@@ -54,7 +72,7 @@ export function parseCountryList(value: string | undefined) {
         .split(/[,\s]+/)
         .map((part) => part.trim())
         .filter(Boolean)
-        .map(normalizeCountryCode),
+        .map(normalize),
     ),
   );
 }
@@ -69,7 +87,7 @@ async function resolveTargetCountries(
   envCountries?: string,
   discoverCountries?: () => Promise<string[]>,
 ) {
-  const explicitCountries = parseCountryList(countriesArg || envCountries);
+  const explicitCountries = parseCountryList(countriesArg || envCountries, normalizeYouTubeMusicCountryCode);
   if (explicitCountries.length > 0) {
     return explicitCountries;
   }
@@ -82,7 +100,7 @@ async function resolveTargetCountries(
   return discovered.map((entry) => entry.countryCode);
 }
 
-async function fetchWithRetry<TSnapshot extends SupportedSnapshot>(
+async function fetchWithRetry<TSnapshot extends CountryChartSnapshotLike>(
   countryCode: string,
   fetchSnapshot: (countryCode: string) => Promise<TSnapshot>,
 ) {
@@ -119,7 +137,31 @@ export async function runYouTubeMusicSerialCrawl<TSnapshot extends SupportedSnap
   saveSnapshot,
   topLabel,
 }: RunCrawlOptions<TSnapshot>) {
-  const countries = await resolveTargetCountries(client, cliOptions.countriesArg, envCountries, discoverCountries);
+  return runSerialCountryChartCrawl({
+    scriptName,
+    cliOptions,
+    envCountries,
+    discoverCountries: async () =>
+      resolveTargetCountries(client, cliOptions.countriesArg, envCountries, discoverCountries),
+    fetchSnapshot,
+    saveSnapshot,
+    topLabel,
+    normalizeCountryCode: normalizeYouTubeMusicCountryCode,
+  });
+}
+
+export async function runSerialCountryChartCrawl<TSnapshot extends CountryChartSnapshotLike>({
+  scriptName,
+  cliOptions,
+  envCountries,
+  discoverCountries,
+  fetchSnapshot,
+  saveSnapshot,
+  topLabel,
+  normalizeCountryCode = normalizeYouTubeMusicCountryCode,
+}: RunSerialCountryChartCrawlOptions<TSnapshot>) {
+  const explicitCountries = parseCountryList(cliOptions.countriesArg || envCountries, normalizeCountryCode);
+  const countries = explicitCountries.length > 0 ? explicitCountries : await (discoverCountries?.() ?? Promise.resolve([]));
   console.log(`targetCountryCount=${countries.length} countries=${countries.join(',')}`);
 
   const failures: Array<{ countryCode: string; errorText: string }> = [];
