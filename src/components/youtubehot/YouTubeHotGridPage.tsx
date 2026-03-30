@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FilterCombobox } from '@/components/ui/filter-combobox';
+import { RankingFilterField } from '@/components/rankings/RankingFilterField';
 import { YouTubeHotVideoCard } from '@/components/youtubehot/YouTubeHotVideoCard';
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
@@ -87,7 +87,8 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
             <div className="flex flex-wrap items-center gap-2">
               <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
                 <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <FilterCombobox
+                  <RankingFilterField
+                    label={t.filterRegionLabel}
                     options={regionOptions}
                     value={activeRegion}
                     placeholder={t.filterRegionSearchPlaceholder}
@@ -98,7 +99,8 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
                 </div>
 
                 <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <FilterCombobox
+                  <RankingFilterField
+                    label={t.filterCategoryLabel}
                     options={categoryOptions}
                     value={activeCategory}
                     placeholder={t.filterCategorySearchPlaceholder}
@@ -109,7 +111,8 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
                 </div>
 
                 <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <FilterCombobox
+                  <RankingFilterField
+                    label={t.filterSortLabel}
                     options={sortOptions}
                     value={activeSort}
                     placeholder={t.filterSortSearchPlaceholder}

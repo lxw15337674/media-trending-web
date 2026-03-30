@@ -18,6 +18,9 @@ delete (clientOutputConfig as Record<string, unknown>).experimentalMinChunkSize;
 delete (clientTreeshakeConfig as Record<string, unknown>).preset;
 
 export default defineConfig({
+  resolve: {
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+  },
   optimizeDeps: {
     exclude: rscDepExcludes,
   },

@@ -252,7 +252,7 @@ export function YouTubeLiveGridPage({
           <div className="grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
             <div className="w-full sm:w-[260px] xl:w-[300px]">
               <RankingFilterField
-                label={t.filterLanguageSearchPlaceholder}
+                label={t.filterLanguageLabel}
                 options={languageFilterOptions}
                 value={activeLanguageFilter}
                 placeholder={t.filterLanguageSearchPlaceholder}
@@ -263,7 +263,7 @@ export function YouTubeLiveGridPage({
             </div>
             <div className="w-full sm:w-[260px] xl:w-[300px]">
               <RankingFilterField
-                label={t.filterCategorySearchPlaceholder}
+                label={t.filterCategoryLabel}
                 options={categoryFilterOptions}
                 value={activeCategoryFilter}
                 placeholder={t.filterCategorySearchPlaceholder}

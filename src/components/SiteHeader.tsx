@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { ModeToggle } from './ModeToggle';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Check, ChevronDown, EllipsisVertical, Github, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -24,7 +24,7 @@ import {
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu';
 import { cn } from '@/lib/utils';
-import { type Locale, localeFromPathname, stripLocalePrefix, withLocalePrefix } from '@/i18n/config';
+import { type Locale, stripLocalePrefix, withLocalePrefix } from '@/i18n/config';
 import { getLocaleLabel } from '@/i18n/locale-meta';
 import { getMessages } from '@/i18n/messages';
 
@@ -58,31 +58,37 @@ function SiteHeaderFrame({
   const barePath = stripLocalePrefix(pathname ?? '/');
   const siteNav = [
     {
+      path: '/youtube-trending',
       href: withLocalePrefix('/youtube-trending', locale),
       label: t.navYouTubeHot,
       mobileLabel: t.navYouTubeHotShort,
     },
     {
+      path: '/youtube-music',
       href: withLocalePrefix('/youtube-music', locale),
       label: t.navYouTubeMusic,
       mobileLabel: t.navYouTubeMusicShort,
     },
     {
+      path: '/youtube-live',
       href: withLocalePrefix('/youtube-live', locale),
       label: t.navYouTubeLive,
       mobileLabel: t.navYouTubeLiveShort,
     },
     {
+      path: '/x-trending',
       href: withLocalePrefix('/x-trending', locale),
       label: t.navXTrends,
       mobileLabel: t.navXTrendsShort,
     },
     {
+      path: '/tiktok-trending',
       href: withLocalePrefix('/tiktok-trending', locale),
       label: t.navTikTokTrends,
       mobileLabel: t.navTikTokTrendsShort,
     },
     {
+      path: '/tiktok-videos',
       href: withLocalePrefix('/tiktok-videos', locale),
       label: t.navTikTokVideos,
       mobileLabel: t.navTikTokVideosShort,
@@ -103,8 +109,7 @@ function SiteHeaderFrame({
     { locale: 'ja', label: getLocaleLabel('ja'), href: buildLocaleHref('ja') },
   ];
   const currentLocaleLabel = localeOptions.find((option) => option.locale === locale)?.label ?? getLocaleLabel(locale);
-  const activeItem =
-    siteNav.find((item) => pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`))) ?? siteNav[0];
+  const activeItem = siteNav.find((item) => barePath === item.path || barePath.startsWith(`${item.path}/`));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -113,7 +118,7 @@ function SiteHeaderFrame({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                {activeItem.label}
+                {activeItem?.label ?? t.menuTrending}
                 <ChevronDown data-icon="inline-end" />
               </Button>
             </DropdownMenuTrigger>
@@ -122,7 +127,7 @@ function SiteHeaderFrame({
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 {siteNav.map((item) => {
-                  const isActive = !!pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`));
+                  const isActive = barePath === item.path || barePath.startsWith(`${item.path}/`);
                   return (
                     <DropdownMenuItem
                       key={item.href}
@@ -144,7 +149,7 @@ function SiteHeaderFrame({
         <NavigationMenu className="hidden max-w-none justify-start md:flex">
           <NavigationMenuList>
             {siteNav.map((item) => {
-              const isActive = !!pathname && (pathname === item.href || pathname.startsWith(`${item.href}/`));
+              const isActive = barePath === item.path || barePath.startsWith(`${item.path}/`);
               return (
                 <NavigationMenuItem key={item.href}>
                   <NavigationMenuLink asChild>
@@ -250,13 +255,19 @@ function SiteHeaderFrame({
 function SiteHeaderContent({ initialLocale }: { initialLocale: Locale }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const locale = pathname ? localeFromPathname(pathname) : initialLocale;
+  const [resolvedPathname, setResolvedPathname] = useState<string | null>(null);
+  const [resolvedQuery, setResolvedQuery] = useState('');
 
   useEffect(() => {
-    document.cookie = `lang=${locale}; path=/; max-age=${60 * 60 * 24 * 180}; samesite=lax`;
-  }, [locale]);
+    setResolvedPathname(pathname);
+    setResolvedQuery(params.toString());
+  }, [pathname, params]);
 
-  return <SiteHeaderFrame locale={locale} pathname={pathname} switchQuery={params.toString()} />;
+  useEffect(() => {
+    document.cookie = `lang=${initialLocale}; path=/; max-age=${60 * 60 * 24 * 180}; samesite=lax`;
+  }, [initialLocale]);
+
+  return <SiteHeaderFrame locale={initialLocale} pathname={resolvedPathname} switchQuery={resolvedQuery} />;
 }
 
 export function SiteHeader({ locale }: { locale: Locale }) {

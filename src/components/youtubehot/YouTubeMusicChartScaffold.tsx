@@ -3,11 +3,11 @@
 import type { ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Check, ChevronDown } from 'lucide-react';
+import { RankingFilterField } from '@/components/rankings/RankingFilterField';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { FilterCombobox } from '@/components/ui/filter-combobox';
 import type { Locale } from '@/i18n/config';
 import { formatRelativeUpdate } from '@/i18n/format';
 import { getMessages } from '@/i18n/messages';
@@ -20,6 +20,7 @@ import {
 interface YouTubeMusicChartScaffoldMessages {
   title: string;
   updatedAtLabel: string;
+  filterCountryLabel: string;
   filterCountrySearchPlaceholder: string;
   filterNoMatch: string;
   clearSearch: string;
@@ -103,31 +104,37 @@ export function YouTubeMusicChartScaffold({
       <section className={PAGE_SECTION_CLASS}>
         <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
           <CardHeader className="p-2 md:p-3">
-            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-10 min-w-[170px] justify-between">
-                    <span className="truncate">
-                      {chartOptions.find((option) => option.value === currentChartPath)?.label ?? baseMusicT.tabTopSongs}
-                    </span>
-                    <ChevronDown className="size-4 opacity-60" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-[170px]">
-                  {chartOptions.map((option) => {
-                    const isActive = option.value === currentChartPath;
-                    return (
-                      <DropdownMenuItem key={option.value} onClick={() => updateChart(option.value)}>
-                        <span>{option.label}</span>
-                        {isActive ? <Check className="ml-auto size-4" /> : null}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="w-full min-[360px]:w-[220px] sm:w-[240px]">
+                <div className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {baseMusicT.chartSelectorLabel}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="h-10 w-full justify-between">
+                      <span className="truncate">
+                        {chartOptions.find((option) => option.value === currentChartPath)?.label ?? baseMusicT.tabTopSongs}
+                      </span>
+                      <ChevronDown className="size-4 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[170px]">
+                    {chartOptions.map((option) => {
+                      const isActive = option.value === currentChartPath;
+                      return (
+                        <DropdownMenuItem key={option.value} onClick={() => updateChart(option.value)}>
+                          <span>{option.label}</span>
+                          {isActive ? <Check className="ml-auto size-4" /> : null}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
 
-              <div className="w-[260px] min-w-[260px] xl:w-[300px] xl:min-w-[300px]">
-                <FilterCombobox
+              <div className="w-full min-[360px]:w-[260px] xl:w-[300px]">
+                <RankingFilterField
+                  label={t.filterCountryLabel}
                   options={countryOptions}
                   value={country}
                   placeholder={t.filterCountrySearchPlaceholder}
@@ -137,7 +144,7 @@ export function YouTubeMusicChartScaffold({
                 />
               </div>
 
-              <span className="ml-auto shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400 sm:ml-auto sm:self-end">
                 {t.updatedAtLabel} {formatRelativeUpdate(fetchedAt, locale)}
               </span>
             </div>

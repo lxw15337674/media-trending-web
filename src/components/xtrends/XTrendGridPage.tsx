@@ -102,7 +102,7 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
         <div className="flex flex-wrap items-center gap-2">
           <div className="w-full min-[420px]:w-[260px] xl:w-[300px]">
             <RankingFilterField
-              label={t.filterRegionSearchPlaceholder}
+              label={t.filterRegionLabel}
               options={regionOptions}
               value={visibleRegion}
               placeholder={t.filterRegionSearchPlaceholder}
@@ -138,7 +138,7 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
         <div
           className={cn(
             'grid gap-4',
-            visibleGroups.length === 1 ? 'grid-cols-1 xl:max-w-5xl' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4',
+            visibleGroups.length === 1 ? 'grid-cols-1 xl:max-w-5xl' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3',
           )}
         >
           {visibleGroups.map((group) => (
