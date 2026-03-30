@@ -52,8 +52,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Apply database migrations
-        run: pnpm db:migrate
-
       - name: Crawl TikTok hashtag trends
         run: pnpm crawl:tiktok:hashtag -- --timeout-ms=60000 --wait-after-load-ms=1500

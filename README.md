@@ -206,12 +206,14 @@ For CI / GitHub Actions, use `admin_api` mode. The crawler will request the fixe
 - `.github/workflows/youtube-music-videos-daily-crawl.yml`
 - `.github/workflows/youtube-music-shorts-daily-crawl.yml`
 - `.github/workflows/youtube-live-crawl.yml`
+- `.github/workflows/db-migrate.yml`
 - `.github/workflows/x-trending-crawl.yml`
 - `.github/workflows/tiktok-hashtag-crawl.yml`
 - `.github/workflows/tiktok-videos-crawl.yml`
 - `.github/workflows/ci.yml`
 
 The live workflow additionally runs `pnpm db:purge -- --days=30` after crawling (live snapshots only; trending snapshots are retained).
+Schema migrations are run manually via `.github/workflows/db-migrate.yml`, so scheduled crawlers are not blocked by Drizzle migration failures.
 
 Required repository secrets:
 

@@ -1,28 +1,23 @@
-name: X Trending Crawl
+name: Database Migrate
 
 on:
-  schedule:
-    - cron: '5 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: x-trending-crawl-hourly
+  group: db-migrate
   cancel-in-progress: false
 
 jobs:
-  crawl-x-trending:
+  migrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
       TZ: Asia/Shanghai
       TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
       TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      X_TREND_COOKIE_SOURCE: admin_api
-      X_TREND_ADMIN_API_KEY: ${{ secrets.X_TREND_ADMIN_API_KEY }}
-      X_TREND_LOCALE: ${{ secrets.X_TREND_LOCALE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -41,6 +36,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Crawl X trends hourly
-        run: pnpm crawl:x:trending -- --timeout-ms=60000
-
+      - name: Apply database migrations
+        run: pnpm db:migrate
