@@ -2,18 +2,19 @@ import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 import { resolveStandardPageDataErrorMessage } from '@/lib/page-data/runtime-error-message';
 import { normalizeCountryCode } from '@/lib/page-data/search-param-utils';
-import { resolvePreferredCode } from '@/lib/page-data/selection-utils';
 import { logServerError } from '@/lib/server/runtime-error';
 import { readSearchParamRaw, type SearchParamsInput } from '@/lib/server/search-params';
-import { listLatestTikTokHashtagCountries, queryLatestTikTokHashtags } from './db';
-import type { TikTokHashtagCountryFilter, TikTokHashtagQueryItem } from './types';
+import { queryLatestTikTokHashtagCountryGroups } from './db';
+import type { TikTokHashtagCountryFilter, TikTokHashtagCountryGroup } from './types';
+
+const DEFAULT_PAGE_SIZE = 20;
 
 export interface TikTokTrendPageData {
   focusCountry: string;
-  countryName: string | null;
+  groups: TikTokHashtagCountryGroup[];
   countries: TikTokHashtagCountryFilter[];
-  items: TikTokHashtagQueryItem[];
   generatedAt: string;
+  snapshotHour: string | null;
   sourceUrl: string;
   totalCountries: number;
   errorMessage?: string | null;
@@ -27,17 +28,24 @@ export async function buildTikTokTrendPageData(
 ): Promise<TikTokTrendPageData> {
   const t = getMessages(locale).tiktokTrending;
   const fallbackNow = new Date().toISOString();
+  const sourceUrl = 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en';
 
   try {
-    const countries = await listLatestTikTokHashtagCountries();
-    if (!countries.length) {
+    const overview = await queryLatestTikTokHashtagCountryGroups(DEFAULT_PAGE_SIZE);
+    const countries = overview.groups.map((group) => ({
+      countryCode: group.countryCode,
+      countryName: group.countryName,
+      itemCount: group.itemCount,
+    }));
+
+    if (!overview.batch || !countries.length) {
       return {
-        focusCountry: 'US',
-        countryName: null,
+        focusCountry: 'all',
+        groups: [],
         countries: [],
-        items: [],
         generatedAt: fallbackNow,
-        sourceUrl: 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en',
+        snapshotHour: null,
+        sourceUrl,
         totalCountries: 0,
         errorMessage: t.errorNoSnapshot,
         locale,
@@ -45,23 +53,20 @@ export async function buildTikTokTrendPageData(
     }
 
     const requestedCountry = normalizeCountryCode(readSearchParamRaw(rawSearchParams, 'country'));
-    const preferredCountry = preferredCountryCode?.trim().toUpperCase() ?? null;
-    const resolvedCountry = resolvePreferredCode({
-      items: countries,
-      candidates: [requestedCountry, preferredCountry],
-      getCode: (item) => item.countryCode,
-      fallback: 'US',
-    });
+    const focusCountry = requestedCountry && countries.some((item) => item.countryCode === requestedCountry) ? requestedCountry : 'all';
 
-    const result = await queryLatestTikTokHashtags(resolvedCountry);
+    const groups =
+      focusCountry === 'all'
+        ? overview.groups
+        : overview.groups.filter((group) => group.countryCode === focusCountry);
 
     return {
-      focusCountry: resolvedCountry,
-      countryName: result.country?.countryName ?? countries.find((item) => item.countryCode === resolvedCountry)?.countryName ?? null,
+      focusCountry,
+      groups,
       countries,
-      items: result.data,
-      generatedAt: result.batch?.generatedAt ?? fallbackNow,
-      sourceUrl: 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en',
+      generatedAt: overview.batch.generatedAt ?? fallbackNow,
+      snapshotHour: overview.batch.snapshotHour ?? null,
+      sourceUrl,
       totalCountries: countries.length,
       locale,
     };
@@ -70,12 +75,12 @@ export async function buildTikTokTrendPageData(
     const errorMessage = resolveStandardPageDataErrorMessage(error, t);
 
     return {
-      focusCountry: preferredCountryCode?.trim().toUpperCase() || 'US',
-      countryName: null,
+      focusCountry: preferredCountryCode?.trim().toUpperCase() || 'all',
+      groups: [],
       countries: [],
-      items: [],
       generatedAt: fallbackNow,
-      sourceUrl: 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en',
+      snapshotHour: null,
+      sourceUrl,
       totalCountries: 0,
       errorMessage,
       locale,

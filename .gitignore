@@ -42,3 +42,5 @@ generated/
 /.tmp/
 
 .vinext
+
+.dev.vars

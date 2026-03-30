@@ -3,6 +3,7 @@ import { db } from '@/db/index';
 import { parseJsonObject, toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
 import { nowUtcIso } from '@/lib/db/time';
 import type {
+  TikTokHashtagCountryGroup,
   TikTokHashtagCountryFilter,
   TikTokHashtagCreatorPreview,
   TikTokHashtagDetail,
@@ -495,6 +496,91 @@ export async function queryLatestTikTokHashtags(countryCode: string): Promise<Ti
       trendPoints: parseTrendPoints(row.trendPointsJson),
       creatorPreview: parseCreatorPreview(row.creatorPreviewJson),
       detail: parseDetail(row.detailJson),
+    })),
+  };
+}
+
+export async function queryLatestTikTokHashtagCountryGroups(limitPerCountry = 20): Promise<{
+  batch: TikTokHashtagLatestBatch | null;
+  groups: TikTokHashtagCountryGroup[];
+}> {
+  const batch = await getLatestPublishedTikTokHashtagBatch();
+  const normalizedLimit = Math.min(50, Math.max(1, Math.floor(limitPerCountry)));
+
+  if (!batch) {
+    return {
+      batch: null,
+      groups: [],
+    };
+  }
+
+  const countries = await listLatestTikTokHashtagCountries();
+  if (!countries.length) {
+    return {
+      batch,
+      groups: [],
+    };
+  }
+
+  const rows = await db.all<QueryRow>(sql`
+    SELECT
+      ${batch.snapshotHour} as snapshotHour,
+      s.fetched_at as fetchedAt,
+      s.country_code as countryCode,
+      s.country_name as countryName,
+      i.rank as rank,
+      i.hashtag_id as hashtagId,
+      i.hashtag_name as hashtagName,
+      i.publish_count as publishCount,
+      i.video_views as videoViews,
+      i.rank_diff as rankDiff,
+      i.rank_diff_type as rankDiffType,
+      i.industry_name as industryName,
+      i.detail_page_url as detailPageUrl,
+      i.trend_points_json as trendPointsJson,
+      i.creator_preview_json as creatorPreviewJson,
+      i.detail_json as detailJson
+    FROM tiktok_hashtag_hourly_items i
+    JOIN tiktok_hashtag_hourly_snapshots s ON s.id = i.snapshot_id
+    WHERE
+      s.batch_id = ${batch.id}
+      AND s.status = 'success'
+      AND i.rank <= ${normalizedLimit}
+    ORDER BY s.country_code ASC, i.rank ASC
+  `);
+
+  const itemsByCountry = new Map<string, TikTokHashtagQueryResult['data']>();
+  for (const row of rows) {
+    const countryItems = itemsByCountry.get(row.countryCode) ?? [];
+    countryItems.push({
+      snapshotHour: row.snapshotHour,
+      fetchedAt: row.fetchedAt,
+      countryCode: row.countryCode,
+      countryName: row.countryName,
+      rank: toNumber(row.rank, 0),
+      hashtagId: row.hashtagId,
+      hashtagName: row.hashtagName,
+      publishCount: toNullableNumber(row.publishCount),
+      videoViews: toNullableNumber(row.videoViews),
+      rankDiff: toNullableNumber(row.rankDiff),
+      rankDiffType: toNullableNumber(row.rankDiffType),
+      industryName: row.industryName,
+      detailPageUrl: row.detailPageUrl,
+      publicTagUrl: buildTikTokPublicTagUrl(row.hashtagName),
+      trendPoints: parseTrendPoints(row.trendPointsJson),
+      creatorPreview: parseCreatorPreview(row.creatorPreviewJson),
+      detail: parseDetail(row.detailJson),
+    });
+    itemsByCountry.set(row.countryCode, countryItems);
+  }
+
+  return {
+    batch,
+    groups: countries.map((country) => ({
+      countryCode: country.countryCode,
+      countryName: country.countryName,
+      itemCount: country.itemCount,
+      items: itemsByCountry.get(country.countryCode) ?? [],
     })),
   };
 }

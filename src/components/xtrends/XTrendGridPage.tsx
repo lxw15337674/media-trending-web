@@ -58,11 +58,14 @@ export function XTrendGridPage({ initialData, userRegion }: XTrendGridPageProps)
   const availableRegionKeys = useMemo(() => new Set(initialData.regions.map((item) => item.regionKey)), [initialData.regions]);
   const visibleRegion = selectedRegion !== 'all' && availableRegionKeys.has(selectedRegion) ? selectedRegion : 'all';
   const visibleGroups = useMemo(
-    () =>
-      visibleRegion === 'all'
-        ? initialData.groups
-        : initialData.groups.filter((group) => group.regionKey === visibleRegion),
-    [initialData.groups, visibleRegion],
+    () => {
+      if (visibleRegion === 'all') {
+        return prioritizePreferredItem(initialData.groups, (group) => group.regionKey, userRegion);
+      }
+
+      return initialData.groups.filter((group) => group.regionKey === visibleRegion);
+    },
+    [initialData.groups, userRegion, visibleRegion],
   );
   const regionOptions = useMemo(
     () => buildRegionOptions(initialData.regions, t.allRegions, userRegion),

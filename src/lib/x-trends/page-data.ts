@@ -2,7 +2,6 @@ import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 import { resolveStandardPageDataErrorMessage } from '@/lib/page-data/runtime-error-message';
 import { normalizeLowercaseKey } from '@/lib/page-data/search-param-utils';
-import { resolvePreferredCode } from '@/lib/page-data/selection-utils';
 import { logServerError } from '@/lib/server/runtime-error';
 import { readSearchParamRaw, type SearchParamsInput } from '@/lib/server/search-params';
 import { queryLatestXTrendRegionGroups } from '@/lib/x-trends/db';
@@ -50,12 +49,7 @@ export async function buildXTrendPageData(
     }
 
     const requestedRegion = normalizeLowercaseKey(readSearchParamRaw(rawSearchParams, 'region'));
-    const focusRegion = resolvePreferredCode({
-      items: regions,
-      candidates: [requestedRegion],
-      getCode: (item) => item.regionKey,
-      fallback: 'all',
-    });
+    const focusRegion = requestedRegion && regions.some((item) => item.regionKey === requestedRegion) ? requestedRegion : 'all';
 
     return {
       focusRegion,

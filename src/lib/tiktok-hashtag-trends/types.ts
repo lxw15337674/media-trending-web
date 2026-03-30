@@ -149,3 +149,10 @@ export interface TikTokHashtagQueryResult {
   country: TikTokHashtagCountryFilter | null;
   data: TikTokHashtagQueryItem[];
 }
+
+export interface TikTokHashtagCountryGroup {
+  countryCode: string;
+  countryName: string;
+  itemCount: number;
+  items: TikTokHashtagQueryItem[];
+}

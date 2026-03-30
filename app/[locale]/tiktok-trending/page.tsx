@@ -40,7 +40,15 @@ export default async function TikTokTrendPage({ params, searchParams }: TikTokTr
   const locale = resolveLocale(requestedLocale);
   const userCountry = getRequestCountryCode(requestHeaders)?.toUpperCase() ?? null;
   const pageData = await buildTikTokTrendPageData(resolvedSearchParams, locale, userCountry);
-  const jsonLd = buildTikTokTrendJsonLd(locale, pageData.items, pageData.countryName);
+  const focusedCountry = pageData.focusCountry === 'all' ? null : pageData.focusCountry;
+  const focusedCountryName = focusedCountry
+    ? pageData.countries.find((country) => country.countryCode === focusedCountry)?.countryName ?? focusedCountry
+    : null;
+  const jsonLdItems =
+    focusedCountry === null
+      ? pageData.groups.flatMap((group) => group.items).slice(0, 10)
+      : pageData.groups.find((group) => group.countryCode === focusedCountry)?.items.slice(0, 10) ?? [];
+  const jsonLd = buildTikTokTrendJsonLd(locale, jsonLdItems, focusedCountryName);
 
   return <TikTokTrendGridPage initialData={pageData} userCountry={userCountry} jsonLd={jsonLd} />;
 }
