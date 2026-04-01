@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { LOCALES } from '@/i18n/config';
 import { getLatestAppStoreGameTopFreeUsSnapshot } from '@/lib/app-store-games/db';
+import { getLatestGooglePlayGameTopFreeUsSnapshot } from '@/lib/google-play-games/db';
 import { getLatestSpotifyTopSongsGlobalSnapshot } from '@/lib/spotify/db';
 import { getLatestSteamMostPlayedSnapshot } from '@/lib/steam/db';
 import { getLatestPublishedTikTokHashtagBatch } from '@/lib/tiktok-hashtag-trends/db';
@@ -27,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let liveLastModified = now;
   let spotifyLastModified = now;
   let steamLastModified = now;
-  let appStoreGamesLastModified = now;
+  let gamesLastModified = now;
   let xTrendingLastModified = now;
   let tiktokTrendingLastModified = now;
 
@@ -82,9 +83,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const latestAppStoreGamesSnapshot = await getLatestAppStoreGameTopFreeUsSnapshot();
-    appStoreGamesLastModified = toValidDate(latestAppStoreGamesSnapshot?.fetchedAt, now);
+    const latestGooglePlayGamesSnapshot = await getLatestGooglePlayGameTopFreeUsSnapshot();
+    const latestAppStoreAt = toValidDate(latestAppStoreGamesSnapshot?.fetchedAt, now).getTime();
+    const latestGooglePlayAt = toValidDate(latestGooglePlayGamesSnapshot?.fetchedAt, now).getTime();
+    gamesLastModified = new Date(Math.max(latestAppStoreAt, latestGooglePlayAt));
   } catch {
-    appStoreGamesLastModified = now;
+    gamesLastModified = now;
   }
 
   try {
@@ -151,8 +155,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: locale === 'en' ? 0.8 : 0.7,
     },
     {
-      url: toAbsoluteUrl(`/${locale}/app-store-games`),
-      lastModified: appStoreGamesLastModified,
+      url: toAbsoluteUrl(`/${locale}/games`),
+      lastModified: gamesLastModified,
       changeFrequency: 'daily' as const,
       priority: locale === 'en' ? 0.8 : 0.7,
     },

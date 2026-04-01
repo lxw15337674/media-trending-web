@@ -92,8 +92,8 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
       description: messages.home.steamDescription,
     },
     {
-      href: `/${locale}/app-store-games`,
-      platform: 'App Store',
+      href: `/${locale}/games`,
+      platform: 'App Store / Google Play',
       label: messages.common.navAppStoreGames,
       description: messages.home.appStoreGamesDescription,
     },

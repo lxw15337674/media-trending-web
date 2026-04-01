@@ -1,19 +1,19 @@
 'use client';
 
-import { AppStoreGameChartScaffold } from '@/components/appstoregames/AppStoreGameChartScaffold';
-import { AppStoreGameListRow } from '@/components/appstoregames/AppStoreGameListRow';
+import { GooglePlayGameChartScaffold } from '@/components/googleplaygames/GooglePlayGameChartScaffold';
+import { GooglePlayGameListRow } from '@/components/googleplaygames/GooglePlayGameListRow';
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
-import { getLocalizedAppStoreGameCountryLabel } from '@/lib/app-store-games/labels';
-import type { AppStoreGamesPageSection } from '@/lib/app-store-games/page-data';
-import type { AppStoreGameCountryOption } from '@/lib/app-store-games/types';
+import { getLocalizedGooglePlayGameCountryLabel } from '@/lib/google-play-games/labels';
+import type { GooglePlayGamesPageSection } from '@/lib/google-play-games/page-data';
+import type { GooglePlayGameCountryOption } from '@/lib/google-play-games/types';
 import { createRegionDisplayNames } from '@/lib/youtube-hot/labels';
 
-interface AppStoreGameGridPageProps {
+interface GooglePlayGameGridPageProps {
   country: string;
   countryName: string;
-  countries: AppStoreGameCountryOption[];
-  sections: AppStoreGamesPageSection[];
+  countries: GooglePlayGameCountryOption[];
+  sections: GooglePlayGamesPageSection[];
   fetchedAt: string | null;
   sourceUrl: string;
   errorMessage?: string | null;
@@ -21,14 +21,14 @@ interface AppStoreGameGridPageProps {
   jsonLd?: unknown;
 }
 
-function AppStoreGameChartSection({
+function GooglePlayGameChartSection({
   section,
   locale,
 }: {
-  section: AppStoreGamesPageSection;
+  section: GooglePlayGamesPageSection;
   locale: Locale;
 }) {
-  const t = getMessages(locale).appStoreGames;
+  const t = getMessages(locale).googlePlayGames;
 
   return (
     <section className="overflow-hidden rounded-[20px] border border-white/8 bg-[#131418] shadow-[0_16px_56px_rgba(0,0,0,0.28)]">
@@ -44,7 +44,7 @@ function AppStoreGameChartSection({
             rel="noreferrer"
             className="shrink-0 text-[11px] font-medium text-cyan-300 transition-colors hover:text-cyan-200"
           >
-            RSS
+            Google Play
           </a>
         ) : null}
       </header>
@@ -52,7 +52,7 @@ function AppStoreGameChartSection({
       {section.items.length > 0 ? (
         <div className="divide-y divide-white/6">
           {section.items.map((item) => (
-            <AppStoreGameListRow key={`${section.chartType}-${item.rank}-${item.appId}`} item={item} locale={locale} />
+            <GooglePlayGameListRow key={`${section.chartType}-${item.rank}-${item.appId}`} item={item} locale={locale} />
           ))}
         </div>
       ) : (
@@ -62,7 +62,7 @@ function AppStoreGameChartSection({
   );
 }
 
-export function AppStoreGameGridPage({
+export function GooglePlayGameGridPage({
   country,
   countryName,
   countries,
@@ -72,23 +72,23 @@ export function AppStoreGameGridPage({
   errorMessage,
   locale,
   jsonLd,
-}: AppStoreGameGridPageProps) {
-  const t = getMessages(locale).appStoreGames;
+}: GooglePlayGameGridPageProps) {
+  const t = getMessages(locale).googlePlayGames;
   const regionDisplayNames = createRegionDisplayNames(locale);
-  const countryLabel = getLocalizedAppStoreGameCountryLabel(country, countryName, locale, regionDisplayNames);
+  const countryLabel = getLocalizedGooglePlayGameCountryLabel(country, countryName, locale, regionDisplayNames);
   const subtitle = t.subtitle.replace('{country}', countryLabel);
   const visibleSections = sections.filter((section) => section.items.length > 0 || !errorMessage);
   const grid =
     visibleSections.length > 0 ? (
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visibleSections.map((section) => (
-          <AppStoreGameChartSection key={section.chartType} section={section} locale={locale} />
+          <GooglePlayGameChartSection key={section.chartType} section={section} locale={locale} />
         ))}
       </div>
     ) : null;
 
   return (
-    <AppStoreGameChartScaffold
+    <GooglePlayGameChartScaffold
       locale={locale}
       t={{
         title: t.title,
@@ -113,6 +113,6 @@ export function AppStoreGameGridPage({
       jsonLd={jsonLd}
     >
       {grid}
-    </AppStoreGameChartScaffold>
+    </GooglePlayGameChartScaffold>
   );
 }

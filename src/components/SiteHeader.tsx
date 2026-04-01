@@ -39,7 +39,7 @@ function isLocaleSwitchablePath(barePath: string) {
     barePath.startsWith('/apple-music') ||
     barePath.startsWith('/spotify') ||
     barePath.startsWith('/steam') ||
-    barePath.startsWith('/app-store-games') ||
+    barePath.startsWith('/games') ||
     barePath === '/youtube-live' ||
     barePath === '/x-trending' ||
     barePath === '/tiktok-trending' ||
@@ -92,8 +92,8 @@ function SiteHeaderFrame({
       mobileLabel: t.navSteamShort,
     },
     {
-      path: '/app-store-games',
-      href: withLocalePrefix('/app-store-games', locale),
+      path: '/games',
+      href: withLocalePrefix('/games', locale),
       label: t.navAppStoreGames,
       mobileLabel: t.navAppStoreGamesShort,
     },
@@ -137,7 +137,11 @@ function SiteHeaderFrame({
     { locale: 'ja', label: getLocaleLabel('ja'), href: buildLocaleHref('ja') },
   ];
   const currentLocaleLabel = localeOptions.find((option) => option.locale === locale)?.label ?? getLocaleLabel(locale);
-  const activeItem = siteNav.find((item) => barePath === item.path || barePath.startsWith(`${item.path}/`));
+  const isNavItemActive = (item: { path: string; activePaths?: string[] }) => {
+    const paths = item.activePaths ?? [item.path];
+    return paths.some((path) => barePath === path || barePath.startsWith(`${path}/`));
+  };
+  const activeItem = siteNav.find((item) => isNavItemActive(item));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -155,7 +159,7 @@ function SiteHeaderFrame({
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 {siteNav.map((item) => {
-                  const isActive = barePath === item.path || barePath.startsWith(`${item.path}/`);
+                  const isActive = isNavItemActive(item);
                   return (
                     <DropdownMenuItem
                       key={item.href}
@@ -177,7 +181,7 @@ function SiteHeaderFrame({
         <NavigationMenu className="hidden max-w-none justify-start md:flex">
           <NavigationMenuList>
             {siteNav.map((item) => {
-              const isActive = barePath === item.path || barePath.startsWith(`${item.path}/`);
+              const isActive = isNavItemActive(item);
               return (
                 <NavigationMenuItem key={item.href}>
                   <NavigationMenuLink asChild>

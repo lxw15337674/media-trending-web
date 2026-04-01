@@ -9,12 +9,12 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { type ComboboxOption } from '@/components/ui/combobox';
 import type { Locale } from '@/i18n/config';
 import { formatRelativeUpdate } from '@/i18n/format';
-import { getLocalizedAppStoreGameCountryLabel } from '@/lib/app-store-games/labels';
-import type { AppStoreGameCountryOption } from '@/lib/app-store-games/types';
-import { normalizeAppStoreGameCountryCode } from '@/lib/app-store-games/types';
+import { getLocalizedGooglePlayGameCountryLabel } from '@/lib/google-play-games/labels';
+import type { GooglePlayGameCountryOption } from '@/lib/google-play-games/types';
+import { normalizeGooglePlayGameCountryCode } from '@/lib/google-play-games/types';
 import { createRegionDisplayNames } from '@/lib/youtube-hot/labels';
 
-interface AppStoreGameChartScaffoldMessages {
+interface GooglePlayGameChartScaffoldMessages {
   title: string;
   subtitle: string;
   filterPlatformLabel: string;
@@ -30,11 +30,11 @@ interface AppStoreGameChartScaffoldMessages {
   platformAndroidLabel: string;
 }
 
-interface AppStoreGameChartScaffoldProps {
+interface GooglePlayGameChartScaffoldProps {
   locale: Locale;
-  t: AppStoreGameChartScaffoldMessages;
+  t: GooglePlayGameChartScaffoldMessages;
   country: string;
-  countries: AppStoreGameCountryOption[];
+  countries: GooglePlayGameCountryOption[];
   fetchedAt: string | null;
   sourceUrl: string;
   errorMessage?: string | null;
@@ -44,7 +44,7 @@ interface AppStoreGameChartScaffoldProps {
 
 const PAGE_SECTION_CLASS = 'mx-auto w-full px-4 pt-6 md:px-6 md:pt-8 lg:w-[80%]';
 
-export function AppStoreGameChartScaffold({
+export function GooglePlayGameChartScaffold({
   locale,
   t,
   country,
@@ -54,13 +54,13 @@ export function AppStoreGameChartScaffold({
   errorMessage,
   jsonLd,
   children,
-}: AppStoreGameChartScaffoldProps) {
+}: GooglePlayGameChartScaffoldProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const regionDisplayNames = createRegionDisplayNames(locale);
   const countryOptions: ComboboxOption[] = countries.map((item) => {
-    const label = getLocalizedAppStoreGameCountryLabel(item.countryCode, item.countryName, locale, regionDisplayNames);
+    const label = getLocalizedGooglePlayGameCountryLabel(item.countryCode, item.countryName, locale, regionDisplayNames);
     return {
       value: item.countryCode,
       label,
@@ -69,7 +69,7 @@ export function AppStoreGameChartScaffold({
   });
 
   const updateCountry = (nextCountry: string) => {
-    const normalizedCountry = normalizeAppStoreGameCountryCode(nextCountry);
+    const normalizedCountry = normalizeGooglePlayGameCountryCode(nextCountry);
     const next = new URLSearchParams(searchParams.toString());
     if (normalizedCountry === 'US') {
       next.delete('country');
@@ -104,7 +104,7 @@ export function AppStoreGameChartScaffold({
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-full min-[360px]:w-[220px] xl:w-[240px]">
                 <GamePlatformFilter
-                  currentPlatform="apple"
+                  currentPlatform="android"
                   label={t.filterPlatformLabel}
                   placeholder={t.filterPlatformSearchPlaceholder}
                   emptyText={t.filterNoMatch}

@@ -426,6 +426,69 @@ export const appStoreGameChartItems = sqliteTable(
   }),
 );
 
+export const googlePlayGameChartSnapshots = sqliteTable(
+  'google_play_game_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    snapshotHour: text('snapshot_hour').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    pageTitle: text('page_title').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_google_play_game_chart_snapshots_unique').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    chartLatestIdx: index('idx_google_play_game_chart_snapshots_latest').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    statusIdx: index('idx_google_play_game_chart_snapshots_status').on(table.status, table.snapshotHour),
+  }),
+);
+
+export const googlePlayGameChartItems = sqliteTable(
+  'google_play_game_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => googlePlayGameChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    appId: text('app_id').notNull(),
+    appName: text('app_name').notNull(),
+    developerName: text('developer_name'),
+    storeUrl: text('store_url').notNull(),
+    artworkUrl: text('artwork_url'),
+    ratingText: text('rating_text'),
+    ratingValue: text('rating_value'),
+    priceText: text('price_text'),
+    primaryGenre: text('primary_genre'),
+    genreSummary: text('genre_summary'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_google_play_game_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotAppUnique: uniqueIndex('idx_google_play_game_chart_items_snapshot_app').on(table.snapshotId, table.appId),
+    snapshotIdx: index('idx_google_play_game_chart_items_snapshot').on(table.snapshotId),
+    appIdx: index('idx_google_play_game_chart_items_app').on(table.appId),
+    appNameIdx: index('idx_google_play_game_chart_items_name').on(table.appName),
+  }),
+);
+
 export const youtubeMusicVideoDailySnapshots = sqliteTable(
   'youtube_music_video_daily_snapshots',
   {
@@ -855,6 +918,10 @@ export type AppStoreGameChartSnapshot = typeof appStoreGameChartSnapshots.$infer
 export type NewAppStoreGameChartSnapshot = typeof appStoreGameChartSnapshots.$inferInsert;
 export type AppStoreGameChartItem = typeof appStoreGameChartItems.$inferSelect;
 export type NewAppStoreGameChartItem = typeof appStoreGameChartItems.$inferInsert;
+export type GooglePlayGameChartSnapshot = typeof googlePlayGameChartSnapshots.$inferSelect;
+export type NewGooglePlayGameChartSnapshot = typeof googlePlayGameChartSnapshots.$inferInsert;
+export type GooglePlayGameChartItem = typeof googlePlayGameChartItems.$inferSelect;
+export type NewGooglePlayGameChartItem = typeof googlePlayGameChartItems.$inferInsert;
 export type YouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferSelect;
 export type NewYouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferInsert;
 export type YouTubeMusicVideoDailyItem = typeof youtubeMusicVideoDailyItems.$inferSelect;
