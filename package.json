@@ -23,6 +23,7 @@
     "crawl:youtube:music:shorts:daily": "tsx scripts/crawl-youtube-music-shorts-songs-daily.ts",
     "crawl:youtube:live": "tsx scripts/crawl-youtube-live.ts",
     "crawl:apple-music:top-songs": "tsx scripts/crawl-apple-music-top-songs.ts",
+    "crawl:spotify:top-songs": "tsx scripts/crawl-spotify-top-songs.ts",
     "crawl:apple-music:top-songs:global": "tsx scripts/crawl-apple-music-top-songs-global.ts",
     "spike:apple-music:global": "tsx scripts/spike-apple-music-global.ts",
     "deploy:cloudflare": "npx wrangler deploy --config dist/server/wrangler.json --name galaxy-trending-web",
@@ -92,4 +93,5 @@
   },
   "type": "module"
 }
+
 

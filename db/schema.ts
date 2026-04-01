@@ -228,6 +228,75 @@ export const appleMusicChartItems = sqliteTable(
   }),
 );
 
+export const spotifyChartSnapshots = sqliteTable(
+  'spotify_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    periodType: text('period_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    chartEndDate: text('chart_end_date').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    chartAlias: text('chart_alias').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_spotify_chart_snapshots_unique').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    chartLatestIdx: index('idx_spotify_chart_snapshots_latest').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    statusIdx: index('idx_spotify_chart_snapshots_status').on(table.status, table.chartEndDate),
+  }),
+);
+
+export const spotifyChartItems = sqliteTable(
+  'spotify_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => spotifyChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    previousRank: integer('previous_rank'),
+    peakRank: integer('peak_rank'),
+    appearancesOnChart: integer('appearances_on_chart'),
+    trackName: text('track_name').notNull(),
+    artistNames: text('artist_names').notNull(),
+    spotifyTrackId: text('spotify_track_id'),
+    spotifyTrackUri: text('spotify_track_uri'),
+    spotifyTrackUrl: text('spotify_track_url'),
+    albumName: text('album_name'),
+    thumbnailUrl: text('thumbnail_url'),
+    streamCount: integer('stream_count'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_spotify_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotTrackUnique: uniqueIndex('idx_spotify_chart_items_snapshot_track').on(
+      table.snapshotId,
+      table.spotifyTrackId,
+    ),
+    snapshotIdx: index('idx_spotify_chart_items_snapshot').on(table.snapshotId),
+    trackIdx: index('idx_spotify_chart_items_track').on(table.trackName),
+  }),
+);
+
 export const youtubeMusicVideoDailySnapshots = sqliteTable(
   'youtube_music_video_daily_snapshots',
   {
@@ -645,6 +714,10 @@ export type AppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferSele
 export type NewAppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferInsert;
 export type AppleMusicChartItem = typeof appleMusicChartItems.$inferSelect;
 export type NewAppleMusicChartItem = typeof appleMusicChartItems.$inferInsert;
+export type SpotifyChartSnapshot = typeof spotifyChartSnapshots.$inferSelect;
+export type NewSpotifyChartSnapshot = typeof spotifyChartSnapshots.$inferInsert;
+export type SpotifyChartItem = typeof spotifyChartItems.$inferSelect;
+export type NewSpotifyChartItem = typeof spotifyChartItems.$inferInsert;
 export type YouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferSelect;
 export type NewYouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferInsert;
 export type YouTubeMusicVideoDailyItem = typeof youtubeMusicVideoDailyItems.$inferSelect;
@@ -671,3 +744,6 @@ export type XTrendHourlySnapshot = typeof xTrendHourlySnapshots.$inferSelect;
 export type NewXTrendHourlySnapshot = typeof xTrendHourlySnapshots.$inferInsert;
 export type XTrendHourlyItem = typeof xTrendHourlyItems.$inferSelect;
 export type NewXTrendHourlyItem = typeof xTrendHourlyItems.$inferInsert;
+
+
+

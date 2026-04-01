@@ -10,6 +10,7 @@ Multi-source trending site with:
 - TikTok Hashtag Trends（按小时串行抓取多地区）
 - TikTok Hot Videos（按小时串行抓取多地区，仅热门排序）
 - X Trends（按小时抓取，默认按代码内维护的前 20 活跃地区串行抓取，同时保留 `X_TREND_TARGETS_JSON` 作为后续自定义多地区入口）
+- Spotify Top Songs（基于 Spotify Charts 登录态抓取的每日歌曲榜，支持 Global / US / JP，可扩展国家）
 
 ## Tech Stack
 
@@ -42,19 +43,26 @@ For the current default X Trends crawler:
 - region labels and UI location selectors are resolved from the built-in region map
 - crawler uses a single browser context and switches X Explore location serially
 
-X Trends cookie source selection:
+Shared admin_api auth for browser-based crawlers:
 
-- `X_TREND_COOKIE_SOURCE`
-  - `storage_state_file`: 从本地 Playwright `storageState` 文件读取 cookie，适合本地调试
-  - `admin_api`: 从管理接口读取 X/Twitter cookie，优先请求 `website=x.com`，如不存在则自动回退到 `website=twitter.com`，适合 GitHub Actions / 线上定时抓取
+- only `admin_api` is supported
+- shared env var is `API_KEY`
+- crawler requests session state from `https://dev-api.bhwa233.com/api/admin/gist-cookie`
 
-If `X_TREND_COOKIE_SOURCE=storage_state_file`:
+X Trends auth details:
 
-- `X_TREND_STORAGE_STATE_PATH`
+- request order is `website=x.com` first, then automatic fallback to `website=twitter.com`
 
-If `X_TREND_COOKIE_SOURCE=admin_api`:
+Spotify top songs crawler:
 
-- `X_TREND_ADMIN_API_KEY`
+- current default target list is `['global', 'US', 'JP']`
+- crawler uses Playwright with storageState fetched from admin_api
+- chart source page is `charts.spotify.com/charts/view/regional-<country>-daily/latest`
+
+Optional Spotify variables:
+
+- `SPOTIFY_TOP_SONGS_COUNTRY_CODES`
+- `SPOTIFY_BROWSER_EXECUTABLE_PATH`
 
 Other optional X Trends variables:
 
@@ -97,8 +105,6 @@ Optional TikTok hot videos variables:
 - `regionLabel` (optional override)
 - `locationSearchQuery` (optional override)
 - `locationSelectText` (optional override)
-- `cookieSource`
-- `storageStatePath`
 - `adminApiKey`
 - `targetUrl`
 - `browserExecutablePath`
@@ -128,9 +134,9 @@ Built-in region labels currently include:
 - `vn` -> `Vietnam`
 - `tr` -> `Turkey`
 
-For GitHub Actions hourly crawl, add these repository secrets:
+For GitHub Actions crawlers, add these repository secrets:
 
-- `X_TREND_ADMIN_API_KEY`
+- `API_KEY`
 - `X_TREND_LOCALE` (optional)
 
 ## Local Development
@@ -165,6 +171,9 @@ pnpm crawl:youtube:live
 pnpm crawl:youtube:live -- --max-results=200 --search-pages=4 --retention-days=30 --query=live
 pnpm crawl:youtube:live -- --dry-run
 
+pnpm crawl:spotify:top-songs
+pnpm crawl:spotify:top-songs -- --countries=global,US,JP --dry-run
+
 pnpm crawl:x:trending
 pnpm crawl:x:trending -- --dry-run
 pnpm crawl:x:trending -- --hour="2026-03-28 11:00:00" --regions=us,jp
@@ -180,13 +189,11 @@ pnpm crawl:tiktok:videos -- --dry-run
 Example local debug flow for X Trends:
 
 ```bash
-# local file mode
-export X_TREND_COOKIE_SOURCE=storage_state_file
-export X_TREND_STORAGE_STATE_PATH=/path/to/x-storage-state.json
+export API_KEY=your_admin_api_key
 pnpm crawl:x:trending -- --dry-run
 ```
 
-For CI / GitHub Actions, use `admin_api` mode. The crawler will first request `x.com` from `https://dev-api.bhwa233.com/api/admin/gist-cookie`, and automatically fall back to `twitter.com` when the admin API does not have an `x.com` entry. The returned payload is then converted into Playwright `storageState` in memory.
+For CI / GitHub Actions, the crawler first requests `x.com` from `https://dev-api.bhwa233.com/api/admin/gist-cookie`, and automatically falls back to `twitter.com` when the admin API does not have an `x.com` entry. The returned payload is then converted into Playwright `storageState` in memory.
 
 ## API
 
@@ -208,6 +215,7 @@ For CI / GitHub Actions, use `admin_api` mode. The crawler will first request `x
 - `.github/workflows/youtube-live-crawl.yml`
 - `.github/workflows/db-migrate.yml`
 - `.github/workflows/x-trending-crawl.yml`
+- `.github/workflows/spotify-top-songs-crawl.yml`
 - `.github/workflows/tiktok-hashtag-crawl.yml`
 - `.github/workflows/tiktok-videos-crawl.yml`
 - `.github/workflows/ci.yml`
@@ -222,5 +230,7 @@ Required repository secrets:
 - `NEXT_PUBLIC_SITE_URL`
 - `YOUTUBE_API_KEY_DAILY`
 - `YOUTUBE_API_KEY_LIVE`
-- `X_TREND_ADMIN_API_KEY`
+- `API_KEY`
+
+
 

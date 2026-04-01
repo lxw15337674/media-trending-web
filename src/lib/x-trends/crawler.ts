@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page, type Response } from 'playwright-core';
 import { resolveXTrendStorageState } from './cookie-provider';
 import {
@@ -462,13 +461,6 @@ async function openBrowserSession(params: {
     throw new XTrendCrawlerError(
       'cookie_fetch_failed',
       `Failed to resolve storage state for region=${params.target.regionKey}: ${toErrorText(error)}`,
-    );
-  }
-
-  if (typeof storageState === 'string' && !existsSync(storageState)) {
-    throw new XTrendCrawlerError(
-      'cookie_fetch_failed',
-      `Storage state file not found for region=${params.target.regionKey}: ${storageState}`,
     );
   }
 

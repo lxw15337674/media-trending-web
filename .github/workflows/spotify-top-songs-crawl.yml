@@ -1,0 +1,57 @@
+name: Spotify Top Songs Crawl
+
+on:
+  schedule:
+    - cron: '35 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spotify-top-songs-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl-spotify-top-songs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Shanghai
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+      API_KEY: ${{ secrets.API_KEY }}
+      SPOTIFY_TOP_SONGS_COUNTRY_CODES: global,US,JP
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v2
+
+      - name: Resolve Chrome path
+        shell: bash
+        run: |
+          CHROME_PATH="$(which google-chrome || which google-chrome-stable || which chrome || true)"
+          if [ -z "$CHROME_PATH" ]; then
+            echo "Chrome executable not found in PATH" >&2
+            exit 1
+          fi
+          echo "SPOTIFY_BROWSER_EXECUTABLE_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Crawl Spotify top songs
+        run: pnpm crawl:spotify:top-songs -- --timeout-ms=60000 --wait-after-load-ms=1500

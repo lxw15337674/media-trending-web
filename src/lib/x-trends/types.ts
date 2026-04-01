@@ -1,5 +1,4 @@
 export type XTrendExtractionSource = 'network' | 'dom';
-export type XTrendCookieSource = 'storage_state_file' | 'admin_api';
 export type XTrendFailureCode =
   | 'cookie_fetch_failed'
   | 'browser_launch_failed'
@@ -25,8 +24,6 @@ export interface XTrendTarget {
   locationSearchQuery?: string | null;
   locationSelectText?: string | null;
   targetUrl: string;
-  cookieSource: XTrendCookieSource;
-  storageStatePath?: string | null;
   adminApiKey?: string | null;
   browserExecutablePath?: string | null;
   locale?: string | null;

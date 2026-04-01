@@ -80,6 +80,12 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
       description: messages.home.appleMusicDescription,
     },
     {
+      href: `/${locale}/spotify`,
+      platform: 'Spotify',
+      label: messages.common.navSpotify,
+      description: messages.home.spotifyDescription,
+    },
+    {
       href: `/${locale}/youtube-music/videos-daily`,
       platform: 'YouTube Music',
       label: messages.youtubeMusicVideosDaily.title,
