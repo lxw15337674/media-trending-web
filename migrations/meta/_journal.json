@@ -36,6 +36,34 @@
       "when": 1774880454976,
       "tag": "0004_chunky_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1775006425048,
+      "tag": "0005_zippy_wallflower",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1775025352227,
+      "tag": "0006_friendly_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1775032789654,
+      "tag": "0007_concerned_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1775037431288,
+      "tag": "0008_abandoned_blizzard",
+      "breakpoints": true
     }
   ]
 }

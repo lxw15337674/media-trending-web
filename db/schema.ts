@@ -228,6 +228,267 @@ export const appleMusicChartItems = sqliteTable(
   }),
 );
 
+export const spotifyChartSnapshots = sqliteTable(
+  'spotify_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    periodType: text('period_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    chartEndDate: text('chart_end_date').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    chartAlias: text('chart_alias').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_spotify_chart_snapshots_unique').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    chartLatestIdx: index('idx_spotify_chart_snapshots_latest').on(
+      table.chartType,
+      table.periodType,
+      table.countryCode,
+      table.chartEndDate,
+    ),
+    statusIdx: index('idx_spotify_chart_snapshots_status').on(table.status, table.chartEndDate),
+  }),
+);
+
+export const spotifyChartItems = sqliteTable(
+  'spotify_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => spotifyChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    previousRank: integer('previous_rank'),
+    peakRank: integer('peak_rank'),
+    appearancesOnChart: integer('appearances_on_chart'),
+    trackName: text('track_name').notNull(),
+    artistNames: text('artist_names').notNull(),
+    spotifyTrackId: text('spotify_track_id'),
+    spotifyTrackUri: text('spotify_track_uri'),
+    spotifyTrackUrl: text('spotify_track_url'),
+    albumName: text('album_name'),
+    thumbnailUrl: text('thumbnail_url'),
+    streamCount: integer('stream_count'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_spotify_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotTrackUnique: uniqueIndex('idx_spotify_chart_items_snapshot_track').on(
+      table.snapshotId,
+      table.spotifyTrackId,
+    ),
+    snapshotIdx: index('idx_spotify_chart_items_snapshot').on(table.snapshotId),
+    trackIdx: index('idx_spotify_chart_items_track').on(table.trackName),
+  }),
+);
+
+export const steamChartSnapshots = sqliteTable(
+  'steam_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    scopeCode: text('scope_code').notNull(),
+    scopeName: text('scope_name').notNull(),
+    snapshotHour: text('snapshot_hour').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    chartLabel: text('chart_label').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_steam_chart_snapshots_unique').on(
+      table.chartType,
+      table.scopeCode,
+      table.snapshotHour,
+    ),
+    chartLatestIdx: index('idx_steam_chart_snapshots_latest').on(table.chartType, table.scopeCode, table.snapshotHour),
+    statusIdx: index('idx_steam_chart_snapshots_status').on(table.status, table.snapshotHour),
+  }),
+);
+
+export const steamChartItems = sqliteTable(
+  'steam_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => steamChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    steamItemId: text('steam_item_id').notNull(),
+    steamAppId: integer('steam_app_id'),
+    gameName: text('game_name').notNull(),
+    steamUrl: text('steam_url').notNull(),
+    thumbnailUrl: text('thumbnail_url'),
+    currentPlayers: integer('current_players'),
+    peakToday: integer('peak_today'),
+    priceText: text('price_text'),
+    originalPriceText: text('original_price_text'),
+    discountPercent: integer('discount_percent'),
+    releaseDateText: text('release_date_text'),
+    tagSummary: text('tag_summary'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_steam_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotItemUnique: uniqueIndex('idx_steam_chart_items_snapshot_item').on(table.snapshotId, table.steamItemId),
+    snapshotIdx: index('idx_steam_chart_items_snapshot').on(table.snapshotId),
+    appIdx: index('idx_steam_chart_items_app').on(table.steamAppId),
+    gameIdx: index('idx_steam_chart_items_game').on(table.gameName),
+  }),
+);
+
+export const appStoreGameChartSnapshots = sqliteTable(
+  'app_store_game_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    snapshotHour: text('snapshot_hour').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    feedTitle: text('feed_title').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_app_store_game_chart_snapshots_unique').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    chartLatestIdx: index('idx_app_store_game_chart_snapshots_latest').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    statusIdx: index('idx_app_store_game_chart_snapshots_status').on(table.status, table.snapshotHour),
+  }),
+);
+
+export const appStoreGameChartItems = sqliteTable(
+  'app_store_game_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => appStoreGameChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    appId: text('app_id').notNull(),
+    bundleId: text('bundle_id'),
+    appName: text('app_name').notNull(),
+    developerName: text('developer_name').notNull(),
+    developerUrl: text('developer_url'),
+    storeUrl: text('store_url').notNull(),
+    artworkUrl: text('artwork_url'),
+    summary: text('summary'),
+    priceLabel: text('price_label'),
+    priceAmount: text('price_amount'),
+    currencyCode: text('currency_code'),
+    categoryId: text('category_id'),
+    categoryName: text('category_name'),
+    releaseDate: text('release_date'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_app_store_game_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotAppUnique: uniqueIndex('idx_app_store_game_chart_items_snapshot_app').on(table.snapshotId, table.appId),
+    snapshotIdx: index('idx_app_store_game_chart_items_snapshot').on(table.snapshotId),
+    appIdx: index('idx_app_store_game_chart_items_app').on(table.appId),
+    bundleIdx: index('idx_app_store_game_chart_items_bundle').on(table.bundleId),
+    appNameIdx: index('idx_app_store_game_chart_items_name').on(table.appName),
+  }),
+);
+
+export const googlePlayGameChartSnapshots = sqliteTable(
+  'google_play_game_chart_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    chartType: text('chart_type').notNull(),
+    countryCode: text('country_code').notNull(),
+    countryName: text('country_name').notNull(),
+    snapshotHour: text('snapshot_hour').notNull(),
+    fetchedAt: text('fetched_at').notNull(),
+    sourceUrl: text('source_url').notNull(),
+    pageTitle: text('page_title').notNull(),
+    status: text('status').notNull().default('success'),
+    itemCount: integer('item_count').notNull().default(0),
+    errorText: text('error_text'),
+    rawPayload: text('raw_payload'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    chartSnapshotUnique: uniqueIndex('idx_google_play_game_chart_snapshots_unique').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    chartLatestIdx: index('idx_google_play_game_chart_snapshots_latest').on(
+      table.chartType,
+      table.countryCode,
+      table.snapshotHour,
+    ),
+    statusIdx: index('idx_google_play_game_chart_snapshots_status').on(table.status, table.snapshotHour),
+  }),
+);
+
+export const googlePlayGameChartItems = sqliteTable(
+  'google_play_game_chart_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    snapshotId: integer('snapshot_id')
+      .notNull()
+      .references(() => googlePlayGameChartSnapshots.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    appId: text('app_id').notNull(),
+    appName: text('app_name').notNull(),
+    developerName: text('developer_name'),
+    storeUrl: text('store_url').notNull(),
+    artworkUrl: text('artwork_url'),
+    ratingText: text('rating_text'),
+    ratingValue: text('rating_value'),
+    priceText: text('price_text'),
+    primaryGenre: text('primary_genre'),
+    genreSummary: text('genre_summary'),
+    rawItemJson: text('raw_item_json'),
+    createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    snapshotRankUnique: uniqueIndex('idx_google_play_game_chart_items_snapshot_rank').on(table.snapshotId, table.rank),
+    snapshotAppUnique: uniqueIndex('idx_google_play_game_chart_items_snapshot_app').on(table.snapshotId, table.appId),
+    snapshotIdx: index('idx_google_play_game_chart_items_snapshot').on(table.snapshotId),
+    appIdx: index('idx_google_play_game_chart_items_app').on(table.appId),
+    appNameIdx: index('idx_google_play_game_chart_items_name').on(table.appName),
+  }),
+);
+
 export const youtubeMusicVideoDailySnapshots = sqliteTable(
   'youtube_music_video_daily_snapshots',
   {
@@ -645,6 +906,22 @@ export type AppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferSele
 export type NewAppleMusicChartSnapshot = typeof appleMusicChartSnapshots.$inferInsert;
 export type AppleMusicChartItem = typeof appleMusicChartItems.$inferSelect;
 export type NewAppleMusicChartItem = typeof appleMusicChartItems.$inferInsert;
+export type SpotifyChartSnapshot = typeof spotifyChartSnapshots.$inferSelect;
+export type NewSpotifyChartSnapshot = typeof spotifyChartSnapshots.$inferInsert;
+export type SpotifyChartItem = typeof spotifyChartItems.$inferSelect;
+export type NewSpotifyChartItem = typeof spotifyChartItems.$inferInsert;
+export type SteamChartSnapshot = typeof steamChartSnapshots.$inferSelect;
+export type NewSteamChartSnapshot = typeof steamChartSnapshots.$inferInsert;
+export type SteamChartItem = typeof steamChartItems.$inferSelect;
+export type NewSteamChartItem = typeof steamChartItems.$inferInsert;
+export type AppStoreGameChartSnapshot = typeof appStoreGameChartSnapshots.$inferSelect;
+export type NewAppStoreGameChartSnapshot = typeof appStoreGameChartSnapshots.$inferInsert;
+export type AppStoreGameChartItem = typeof appStoreGameChartItems.$inferSelect;
+export type NewAppStoreGameChartItem = typeof appStoreGameChartItems.$inferInsert;
+export type GooglePlayGameChartSnapshot = typeof googlePlayGameChartSnapshots.$inferSelect;
+export type NewGooglePlayGameChartSnapshot = typeof googlePlayGameChartSnapshots.$inferInsert;
+export type GooglePlayGameChartItem = typeof googlePlayGameChartItems.$inferSelect;
+export type NewGooglePlayGameChartItem = typeof googlePlayGameChartItems.$inferInsert;
 export type YouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferSelect;
 export type NewYouTubeMusicVideoDailySnapshot = typeof youtubeMusicVideoDailySnapshots.$inferInsert;
 export type YouTubeMusicVideoDailyItem = typeof youtubeMusicVideoDailyItems.$inferSelect;
@@ -671,3 +948,6 @@ export type XTrendHourlySnapshot = typeof xTrendHourlySnapshots.$inferSelect;
 export type NewXTrendHourlySnapshot = typeof xTrendHourlySnapshots.$inferInsert;
 export type XTrendHourlyItem = typeof xTrendHourlyItems.$inferSelect;
 export type NewXTrendHourlyItem = typeof xTrendHourlyItems.$inferInsert;
+
+
+

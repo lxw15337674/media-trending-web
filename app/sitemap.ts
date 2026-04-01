@@ -1,6 +1,9 @@
 import { MetadataRoute } from 'next';
 import { LOCALES } from '@/i18n/config';
-import { toAbsoluteUrl } from '@/lib/seo/site-origin';
+import { getLatestAppStoreGameTopFreeUsSnapshot } from '@/lib/app-store-games/db';
+import { getLatestGooglePlayGameTopFreeUsSnapshot } from '@/lib/google-play-games/db';
+import { getLatestSpotifyTopSongsGlobalSnapshot } from '@/lib/spotify/db';
+import { getLatestSteamMostPlayedSnapshot } from '@/lib/steam/db';
 import { getLatestPublishedTikTokHashtagBatch } from '@/lib/tiktok-hashtag-trends/db';
 import { getLatestPublishedXTrendBatch } from '@/lib/x-trends/db';
 import { getLatestPublishedBatch } from '@/lib/youtube-hot/db';
@@ -8,6 +11,7 @@ import { getLatestYouTubeLiveSnapshot } from '@/lib/youtube-live/db';
 import { getLatestYouTubeMusicDailyShortsSongsGlobalSnapshot } from '@/lib/youtube-music/daily-shorts-db';
 import { getLatestYouTubeMusicDailyVideosGlobalSnapshot } from '@/lib/youtube-music/daily-videos-db';
 import { getLatestYouTubeMusicWeeklyTopSongsGlobalSnapshot } from '@/lib/youtube-music/db';
+import { toAbsoluteUrl } from '@/lib/seo/site-origin';
 
 function toValidDate(input: string | null | undefined, fallback: Date) {
   if (!input) return fallback;
@@ -22,6 +26,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let musicVideosDailyLastModified = now;
   let musicShortsDailyLastModified = now;
   let liveLastModified = now;
+  let spotifyLastModified = now;
+  let steamLastModified = now;
+  let gamesLastModified = now;
   let xTrendingLastModified = now;
   let tiktokTrendingLastModified = now;
 
@@ -58,6 +65,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     liveLastModified = toValidDate(latestLiveSnapshot?.crawledAt, now);
   } catch {
     liveLastModified = now;
+  }
+
+  try {
+    const latestSpotifySnapshot = await getLatestSpotifyTopSongsGlobalSnapshot();
+    spotifyLastModified = toValidDate(latestSpotifySnapshot?.fetchedAt, now);
+  } catch {
+    spotifyLastModified = now;
+  }
+
+  try {
+    const latestSteamSnapshot = await getLatestSteamMostPlayedSnapshot();
+    steamLastModified = toValidDate(latestSteamSnapshot?.fetchedAt, now);
+  } catch {
+    steamLastModified = now;
+  }
+
+  try {
+    const latestAppStoreGamesSnapshot = await getLatestAppStoreGameTopFreeUsSnapshot();
+    const latestGooglePlayGamesSnapshot = await getLatestGooglePlayGameTopFreeUsSnapshot();
+    const latestAppStoreAt = toValidDate(latestAppStoreGamesSnapshot?.fetchedAt, now).getTime();
+    const latestGooglePlayAt = toValidDate(latestGooglePlayGamesSnapshot?.fetchedAt, now).getTime();
+    gamesLastModified = new Date(Math.max(latestAppStoreAt, latestGooglePlayAt));
+  } catch {
+    gamesLastModified = now;
   }
 
   try {
@@ -110,6 +141,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: liveLastModified,
       changeFrequency: 'daily' as const,
       priority: locale === 'en' ? 0.6 : 0.5,
+    },
+    {
+      url: toAbsoluteUrl(`/${locale}/spotify`),
+      lastModified: spotifyLastModified,
+      changeFrequency: 'daily' as const,
+      priority: locale === 'en' ? 0.8 : 0.7,
+    },
+    {
+      url: toAbsoluteUrl(`/${locale}/steam`),
+      lastModified: steamLastModified,
+      changeFrequency: 'hourly' as const,
+      priority: locale === 'en' ? 0.8 : 0.7,
+    },
+    {
+      url: toAbsoluteUrl(`/${locale}/games`),
+      lastModified: gamesLastModified,
+      changeFrequency: 'daily' as const,
+      priority: locale === 'en' ? 0.8 : 0.7,
     },
     {
       url: toAbsoluteUrl(`/${locale}/x-trending`),
