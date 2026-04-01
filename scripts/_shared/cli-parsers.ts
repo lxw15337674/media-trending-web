@@ -12,7 +12,7 @@ export function parseCountryList(rawValue: string | undefined) {
   const countryCodes = Array.from(
     new Set(
       rawValue
-        .split(',')
+        .split(/[,\s]+/)
         .map((value) => value.trim().toUpperCase())
         .filter((value) => /^[A-Z]{2}$/.test(value)),
     ),
@@ -41,7 +41,7 @@ export function parseEnumList<T extends string>(rawValue: string | undefined, al
   const values = Array.from(
     new Set(
       rawValue
-        .split(',')
+        .split(/[,\s]+/)
         .map((value) => value.trim().toLowerCase())
         .filter((value): value is T => allowed.has(value as T)),
     ),

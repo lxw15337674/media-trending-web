@@ -23,6 +23,7 @@
     "crawl:youtube:music:shorts:daily": "tsx scripts/crawl-youtube-music-shorts-songs-daily.ts",
     "crawl:youtube:live": "tsx scripts/crawl-youtube-live.ts",
     "crawl:apple-music:top-songs": "tsx scripts/crawl-apple-music-top-songs.ts",
+    "crawl:app-store:games": "tsx scripts/crawl-app-store-games.ts",
     "crawl:spotify:top-songs": "tsx scripts/crawl-spotify-top-songs.ts",
     "crawl:steam:charts": "tsx scripts/crawl-steam-charts.ts",
     "crawl:apple-music:top-songs:global": "tsx scripts/crawl-apple-music-top-songs-global.ts",

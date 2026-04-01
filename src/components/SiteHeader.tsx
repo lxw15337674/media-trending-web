@@ -39,6 +39,7 @@ function isLocaleSwitchablePath(barePath: string) {
     barePath.startsWith('/apple-music') ||
     barePath.startsWith('/spotify') ||
     barePath.startsWith('/steam') ||
+    barePath.startsWith('/app-store-games') ||
     barePath === '/youtube-live' ||
     barePath === '/x-trending' ||
     barePath === '/tiktok-trending' ||
@@ -89,6 +90,12 @@ function SiteHeaderFrame({
       href: withLocalePrefix('/steam', locale),
       label: t.navSteam,
       mobileLabel: t.navSteamShort,
+    },
+    {
+      path: '/app-store-games',
+      href: withLocalePrefix('/app-store-games', locale),
+      label: t.navAppStoreGames,
+      mobileLabel: t.navAppStoreGamesShort,
     },
     {
       path: '/youtube-live',
