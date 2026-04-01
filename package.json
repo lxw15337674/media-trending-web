@@ -52,7 +52,7 @@
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.44.7",
     "lucide-react": "^0.379.0",
-    "next-intl": "^4.8.3",
+    "next-intl": "^4.8.4",
     "next-themes": "^0.3.0",
     "react": "^19.2.4",
     "react-day-picker": "^9.14.0",
@@ -64,14 +64,14 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.30.2",
+    "@cloudflare/vite-plugin": "^1.30.3",
     "@eslint/js": "^9.39.4",
     "@next/eslint-plugin-next": "15.5.13",
     "@types/node": "^20.19.37",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^8.57.2",
-    "@typescript-eslint/parser": "^8.57.2",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitejs/plugin-rsc": "^0.5.21",
     "autoprefixer": "^10.4.27",
@@ -81,7 +81,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "next": "15.5.13",
-    "playwright-core": "^1.58.2",
+    "playwright-core": "^1.59.0",
     "postcss": "^8.5.8",
     "react-server-dom-webpack": "^19.2.4",
     "tailwindcss": "^3.4.19",
@@ -89,9 +89,7 @@
     "typescript": "^5.9.3",
     "vinext": "^0.0.38",
     "vite": "^8.0.3",
-    "wrangler": "^4.78.0"
+    "wrangler": "^4.79.0"
   },
   "type": "module"
 }
-
-
