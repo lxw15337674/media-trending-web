@@ -1,5 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { YouTubeMusicChartsClient } from '../src/lib/youtube-music/client';
+import { DEFAULT_YOUTUBE_MUSIC_DAILY_COUNTRY_CODES } from '../src/lib/youtube-music/types';
 import { parseMusicCrawlerCliArgs, runYouTubeMusicSerialCrawl } from './crawl-youtube-music-shared';
 
 loadEnv({ path: '.env' });
@@ -21,7 +22,9 @@ async function main() {
     client,
     cliOptions: options,
     envCountries:
-      process.env.YOUTUBE_MUSIC_DAILY_SHORTS_COUNTRY_CODES ?? process.env.YOUTUBE_MUSIC_DAILY_COUNTRY_CODES,
+      process.env.YOUTUBE_MUSIC_DAILY_SHORTS_COUNTRY_CODES ??
+      process.env.YOUTUBE_MUSIC_DAILY_COUNTRY_CODES ??
+      DEFAULT_YOUTUBE_MUSIC_DAILY_COUNTRY_CODES.join(','),
     discoverCountries: async () =>
       (await client.listAvailableDailyShortsSongsCountries()).map((entry) => entry.countryCode),
     fetchSnapshot: (countryCode) => client.fetchDailyShortsSongs(countryCode),

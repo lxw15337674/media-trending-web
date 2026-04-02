@@ -20,7 +20,7 @@ jobs:
       TZ: Asia/Shanghai
       TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
       TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      YOUTUBE_MUSIC_DAILY_VIDEO_COUNTRY_CODES: global,US,JP
+      YOUTUBE_MUSIC_DAILY_VIDEO_COUNTRY_CODES: global,US,JP,IN,BR,MX,GB,DE,KR,ID,FR
     steps:
       - name: Checkout
         uses: actions/checkout@v5

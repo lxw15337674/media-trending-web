@@ -1,9 +1,11 @@
+import { SHARED_MUSIC_REGION_COUNTRY_CODES } from '../music/countries';
+
 export const SPOTIFY_TOP_SONGS_CHART_TYPE = 'tracks';
 export const SPOTIFY_DAILY_PERIOD_TYPE = 'daily';
 export const SPOTIFY_GLOBAL_COUNTRY_CODE = 'global';
 export const SPOTIFY_GLOBAL_COUNTRY_NAME = 'Global';
 export const SPOTIFY_CHARTS_BASE_URL = 'https://charts.spotify.com';
-export const DEFAULT_SPOTIFY_TOP_SONGS_COUNTRY_CODES = [SPOTIFY_GLOBAL_COUNTRY_CODE, 'US', 'JP'] as const;
+export const DEFAULT_SPOTIFY_TOP_SONGS_COUNTRY_CODES = SHARED_MUSIC_REGION_COUNTRY_CODES;
 
 export interface SpotifyChartArtist {
   name: string;

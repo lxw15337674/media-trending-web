@@ -1,3 +1,5 @@
+import { SHARED_MUSIC_REGION_COUNTRY_CODES } from '../music/countries';
+
 export const YOUTUBE_MUSIC_TOP_SONGS_CHART_TYPE = 'tracks';
 export const YOUTUBE_MUSIC_TOP_VIDEOS_CHART_TYPE = 'videos';
 export const YOUTUBE_MUSIC_SHORTS_SONGS_CHART_TYPE = 'shorts_tracks_by_usage';
@@ -6,11 +8,7 @@ export const YOUTUBE_MUSIC_WEEKLY_PERIOD_TYPE = 'weekly';
 export const YOUTUBE_MUSIC_GLOBAL_COUNTRY_CODE = 'global';
 export const YOUTUBE_MUSIC_GLOBAL_COUNTRY_NAME = 'Global';
 export const YOUTUBE_MUSIC_TOP_SONGS_GLOBAL_PAGE_URL = 'https://charts.youtube.com/charts/TopSongs/global/weekly';
-export const DEFAULT_YOUTUBE_MUSIC_WEEKLY_COUNTRY_CODES = [
-  YOUTUBE_MUSIC_GLOBAL_COUNTRY_CODE,
-  'US',
-  'JP',
-] as const;
+export const DEFAULT_YOUTUBE_MUSIC_WEEKLY_COUNTRY_CODES = SHARED_MUSIC_REGION_COUNTRY_CODES;
 export const DEFAULT_YOUTUBE_MUSIC_DAILY_COUNTRY_CODES = DEFAULT_YOUTUBE_MUSIC_WEEKLY_COUNTRY_CODES;
 
 export interface YouTubeMusicChartArtist {

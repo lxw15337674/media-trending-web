@@ -1,0 +1,21 @@
+export const SHARED_MUSIC_REGION_COUNTRY_CODES = [
+  'global',
+  'US',
+  'JP',
+  'IN',
+  'BR',
+  'MX',
+  'GB',
+  'DE',
+  'KR',
+  'ID',
+  'FR',
+] as const;
+
+export const SHARED_MUSIC_REGION_COUNTRY_CODES_WITHOUT_GLOBAL = SHARED_MUSIC_REGION_COUNTRY_CODES.filter(
+  (countryCode) => countryCode !== 'global',
+);
+
+export const SHARED_MUSIC_REGION_COUNTRY_CODES_CSV = SHARED_MUSIC_REGION_COUNTRY_CODES.join(',');
+export const SHARED_MUSIC_REGION_COUNTRY_CODES_WITHOUT_GLOBAL_CSV =
+  SHARED_MUSIC_REGION_COUNTRY_CODES_WITHOUT_GLOBAL.join(',');
