@@ -44,7 +44,10 @@ function isLocaleSwitchablePath(barePath: string) {
     barePath === '/youtube-live' ||
     barePath === '/twitch-live' ||
     barePath === '/twitch-categories' ||
+    barePath.startsWith('/twitch-games') ||
+    barePath.startsWith('/youtube-trending/') ||
     barePath === '/x-trending' ||
+    barePath.startsWith('/reddit') ||
     barePath === '/tiktok-trending' ||
     barePath === '/tiktok-videos'
   );
@@ -96,7 +99,7 @@ function SiteHeaderFrame({
       mobileLabel: t.navYouTubeLiveShort,
     },
     {
-      paths: ['/twitch-live', '/twitch-categories'],
+      paths: ['/twitch-live', '/twitch-categories', '/twitch-games'],
       href: withLocalePrefix('/twitch-live', locale),
       label: t.navTwitch,
       mobileLabel: t.navTwitchShort,
@@ -106,6 +109,12 @@ function SiteHeaderFrame({
       href: withLocalePrefix('/x-trending', locale),
       label: t.navXTrends,
       mobileLabel: t.navXTrendsShort,
+    },
+    {
+      paths: ['/reddit'],
+      href: withLocalePrefix('/reddit', locale),
+      label: t.navReddit,
+      mobileLabel: t.navRedditShort,
     },
     {
       paths: ['/tiktok-trending'],

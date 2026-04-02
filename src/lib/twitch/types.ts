@@ -71,6 +71,13 @@ export interface TwitchTopCategoryItem {
   directoryUrl: string;
 }
 
+export interface TwitchGameDetail {
+  gameId: string;
+  name: string;
+  boxArtUrl: string | null;
+  directoryUrl: string;
+}
+
 export interface ListTopStreamsOptions {
   pageSize?: number;
   pages?: number;

@@ -73,6 +73,7 @@ export function AppleMusicTrackCard({
       metaRightTop={durationText}
       metaRightBottom={`${t.cardChartDate} ${formatChartDate(chartEndDate, locale)}`}
       tags={tags}
+      mediaAspect="square"
     />
   );
 }

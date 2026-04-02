@@ -3,7 +3,7 @@ import type { Locale } from '@/i18n/config';
 import { getIntlLocale } from '@/i18n/locale-meta';
 import { buildLocaleAlternates } from '@/lib/seo/locale-alternates';
 import { toAbsoluteUrl } from '@/lib/seo/site-origin';
-import type { TwitchTopCategoryItem, TwitchTopStreamItem } from './types';
+import type { TwitchGameDetail, TwitchTopCategoryItem, TwitchTopStreamItem } from './types';
 
 const TWITCH_LIVE_TEXT: Record<Locale, { title: string; description: string; keywords: string[] }> = {
   zh: {
@@ -51,6 +51,29 @@ const TWITCH_CATEGORIES_TEXT: Record<Locale, { title: string; description: strin
   },
 };
 
+const TWITCH_GAME_TEXT: Record<Locale, { titlePrefix: string; descriptionPrefix: string; keywords: string[] }> = {
+  zh: {
+    titlePrefix: 'Twitch 游戏直播榜',
+    descriptionPrefix: '基于 Twitch 官方 API 聚合的游戏直播榜，支持语言与排序切换。',
+    keywords: ['Twitch 游戏榜', 'Twitch 游戏直播', 'Twitch 分类详情', 'Twitch 官方 API'],
+  },
+  en: {
+    titlePrefix: 'Twitch Game Streams',
+    descriptionPrefix: 'Game-specific Twitch stream rankings aggregated from the official Twitch API with language and sort controls.',
+    keywords: ['twitch game streams', 'twitch game ranking', 'twitch category streams', 'twitch official api'],
+  },
+  es: {
+    titlePrefix: 'Streams de juegos en Twitch',
+    descriptionPrefix: 'Ranking de streams por juego agregado desde la API oficial de Twitch con filtros de idioma y orden.',
+    keywords: ['streams twitch juegos', 'ranking juegos twitch', 'categoria twitch detalle', 'api oficial twitch'],
+  },
+  ja: {
+    titlePrefix: 'Twitch ゲーム別ライブ',
+    descriptionPrefix: 'Twitch 公式 API を使ったゲーム別ライブランキング。言語と並び順を切り替えられます。',
+    keywords: ['twitch ゲーム配信', 'twitch ゲーム別ランキング', 'twitch カテゴリ詳細', 'twitch 公式 api'],
+  },
+};
+
 function buildMetadata(text: { title: string; description: string; keywords: string[] }, locale: Locale, pathname: string): Metadata {
   const absoluteCanonical = toAbsoluteUrl(pathname);
   return {
@@ -87,6 +110,41 @@ export function buildTwitchLiveMetadata(locale: Locale) {
 
 export function buildTwitchCategoriesMetadata(locale: Locale) {
   return buildMetadata(TWITCH_CATEGORIES_TEXT[locale], locale, `/${locale}/twitch-categories`);
+}
+
+export function buildTwitchGameMetadata(locale: Locale, game: TwitchGameDetail): Metadata {
+  const text = TWITCH_GAME_TEXT[locale];
+  const title = `${text.titlePrefix} - ${game.name}`;
+  const description = `${text.descriptionPrefix} ${game.name}`;
+  const pathname = `/${locale}/twitch-games/${game.gameId}`;
+  const absoluteCanonical = toAbsoluteUrl(pathname);
+
+  return {
+    title,
+    description,
+    keywords: [...text.keywords, game.name],
+    alternates: {
+      canonical: absoluteCanonical,
+      languages: buildLocaleAlternates(`/twitch-games/${game.gameId}`),
+    },
+    openGraph: {
+      type: 'website',
+      url: absoluteCanonical,
+      title,
+      description,
+      locale: getIntlLocale(locale),
+      siteName: 'Galaxy Trending',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export function buildTwitchLiveJsonLd(locale: Locale, items: TwitchTopStreamItem[]) {
@@ -132,6 +190,31 @@ export function buildTwitchCategoriesJsonLd(locale: Locale, items: TwitchTopCate
         position: index + 1,
         name: item.name,
         url: item.directoryUrl,
+      })),
+    },
+  };
+}
+
+export function buildTwitchGameJsonLd(locale: Locale, game: TwitchGameDetail, items: TwitchTopStreamItem[]) {
+  const text = TWITCH_GAME_TEXT[locale];
+  const pathname = `/${locale}/twitch-games/${game.gameId}`;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${text.titlePrefix} - ${game.name}`,
+    description: `${text.descriptionPrefix} ${game.name}`,
+    url: toAbsoluteUrl(pathname),
+    inLanguage: getIntlLocale(locale),
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListOrder: 'https://schema.org/ItemListOrderDescending',
+      numberOfItems: Math.min(10, items.length),
+      itemListElement: items.slice(0, 10).map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.userName,
+        url: item.streamUrl,
       })),
     },
   };

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { RankingFilterField } from '@/components/rankings/RankingFilterField';
 import { YouTubeHotVideoCard } from '@/components/youtubehot/YouTubeHotVideoCard';
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
+import { YOUTUBE_HOT_CATEGORY_PAGES } from '@/lib/youtube-hot/category-pages';
 import { createRegionDisplayNames } from '@/lib/youtube-hot/labels';
 import {
   buildCategoryOptions,
@@ -24,12 +26,23 @@ interface YouTubeHotGridPageProps {
   userRegion?: string | null;
   jsonLd?: unknown;
   initialData: YouTubeHotInitialData;
+  hideCategoryFilter?: boolean;
+  headerTitle?: string;
+  headerDescription?: string;
 }
 
 const PAGE_SECTION_CLASS = 'mx-auto w-full px-4 pt-2 md:px-6 md:pt-6 lg:w-[80%]';
 const CARD_GRID_CLASS = 'mt-2 grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4';
 
-export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: YouTubeHotGridPageProps) {
+export function YouTubeHotGridPage({
+  locale,
+  userRegion,
+  jsonLd,
+  initialData,
+  hideCategoryFilter = false,
+  headerTitle,
+  headerDescription,
+}: YouTubeHotGridPageProps) {
   const t = getMessages(locale).youtubeHot;
   const [isHydrated, setIsHydrated] = useState(false);
   const {
@@ -82,6 +95,29 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
       {jsonLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /> : null}
       <h1 className="sr-only">{t.title}</h1>
       <section className={PAGE_SECTION_CLASS}>
+        {headerTitle ? (
+          <div className="mb-4 max-w-3xl">
+            <h2 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 md:text-3xl">{headerTitle}</h2>
+            {headerDescription ? (
+              <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{headerDescription}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!hideCategoryFilter ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {YOUTUBE_HOT_CATEGORY_PAGES.map((categoryPage) => (
+              <Link
+                key={categoryPage.slug}
+                href={`/${locale}/youtube-trending/${categoryPage.slug}`}
+                className="rounded-full border border-zinc-300 bg-white/90 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-50"
+              >
+                {categoryPage.label[locale]}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+
         <Card className="border-zinc-200 bg-white/90 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/85">
           <CardHeader className="p-2 md:p-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -98,17 +134,19 @@ export function YouTubeHotGridPage({ locale, userRegion, jsonLd, initialData }: 
                   />
                 </div>
 
-                <div className="w-full sm:w-[260px] xl:w-[300px]">
-                  <RankingFilterField
-                    label={t.filterCategoryLabel}
-                    options={categoryOptions}
-                    value={activeCategory}
-                    placeholder={t.filterCategorySearchPlaceholder}
-                    emptyText={t.filterNoMatch}
-                    clearLabel={t.clearSearch}
-                    onValueChange={onCategoryChange}
-                  />
-                </div>
+                {!hideCategoryFilter ? (
+                  <div className="w-full sm:w-[260px] xl:w-[300px]">
+                    <RankingFilterField
+                      label={t.filterCategoryLabel}
+                      options={categoryOptions}
+                      value={activeCategory}
+                      placeholder={t.filterCategorySearchPlaceholder}
+                      emptyText={t.filterNoMatch}
+                      clearLabel={t.clearSearch}
+                      onValueChange={onCategoryChange}
+                    />
+                  </div>
+                ) : null}
 
                 <div className="w-full sm:w-[260px] xl:w-[300px]">
                   <RankingFilterField

@@ -17,6 +17,7 @@ type YouTubeVideoCardProps =
   | {
       loading: true;
       tagsCount?: number;
+      mediaAspect?: 'video' | 'square';
     }
   | {
       loading?: false;
@@ -31,11 +32,13 @@ type YouTubeVideoCardProps =
       metaRightTop?: string | null;
       metaRightBottom?: string | null;
       tags: YouTubeVideoCardTag[];
+      mediaAspect?: 'video' | 'square';
     };
 
 const CARD_CLASS =
   'flex h-full flex-col overflow-hidden rounded-2xl border-0 bg-transparent p-2 text-zinc-900 shadow-sm transition-all duration-300 ease-out hover:bg-zinc-100 hover:shadow-md hover:ring-1 hover:ring-zinc-200/90 dark:text-zinc-100 dark:hover:bg-zinc-800/70 dark:hover:ring-zinc-700/70';
-const MEDIA_CLASS = 'relative block aspect-video w-full overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-900';
+const MEDIA_VIDEO_CLASS = 'relative block aspect-video w-full overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-900';
+const MEDIA_SQUARE_CLASS = 'relative block aspect-square w-full overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-900';
 const HEADER_CLASS = 'flex flex-col  p-1 ';
 const CONTENT_CLASS = 'mt-auto flex flex-col gap-2 p-0 pt-0';
 
@@ -46,11 +49,13 @@ function getAvatarFallbackText(value: string) {
 }
 
 export function YouTubeVideoCard(props: YouTubeVideoCardProps) {
+  const mediaClass = props.mediaAspect === 'square' ? MEDIA_SQUARE_CLASS : MEDIA_VIDEO_CLASS;
+
   if (props.loading) {
     const tagsCount = props.tagsCount ?? 4;
     return (
       <Card className={CARD_CLASS} aria-hidden="true">
-        <Skeleton className={`${MEDIA_CLASS} bg-zinc-200 dark:bg-zinc-800`} />
+        <Skeleton className={`${mediaClass} bg-zinc-200 dark:bg-zinc-800`} />
 
         <CardHeader className={HEADER_CLASS}>
           <Skeleton className="h-5 w-full bg-zinc-200 dark:bg-zinc-800" />
@@ -84,7 +89,7 @@ export function YouTubeVideoCard(props: YouTubeVideoCardProps) {
 
   return (
     <Card className={CARD_CLASS}>
-      <a href={props.videoHref} target="_blank" rel="noreferrer" className={MEDIA_CLASS}>
+      <a href={props.videoHref} target="_blank" rel="noreferrer" className={mediaClass}>
         {props.thumbnailUrl ? (
           <Image
             src={props.thumbnailUrl}

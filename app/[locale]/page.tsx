@@ -134,6 +134,12 @@ export default async function LocaleIndexPage({ params }: LocaleIndexPageProps) 
       description: messages.home.xTrendsDescription,
     },
     {
+      href: `/${locale}/reddit`,
+      platform: 'Reddit',
+      label: messages.common.navReddit,
+      description: messages.home.redditDescription,
+    },
+    {
       href: `/${locale}/tiktok-trending`,
       platform: 'TikTok',
       label: messages.common.navTikTokTrends,

@@ -622,7 +622,7 @@ async function extractDomTracks(page: Page, selector: 'track-lockup' | 'song-lin
         appleSongId: parseSongId(appleSongUrl),
         appleSongUrl,
         durationMs,
-        thumbnailUrl: normalizeUrl(img?.getAttribute('src') ?? img?.src),
+        thumbnailUrl: normalizeUrl(img?.currentSrc || img?.getAttribute('src') || img?.src),
         rawItem: {
           source: requestedSelector,
           rowText: cleanText(row.innerText),

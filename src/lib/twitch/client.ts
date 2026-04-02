@@ -5,6 +5,7 @@ import type {
   ListTopStreamsResult,
   TwitchAccessTokenResponse,
   TwitchApiResponse,
+  TwitchGameDetail,
   TwitchGame,
   TwitchStream,
   TwitchTopCategoryItem,
@@ -231,6 +232,29 @@ export class TwitchHelixClient {
       fetchedAt: new Date().toISOString(),
       itemCount: items.length,
       items,
+    };
+  }
+
+  async getGameById(gameId: string): Promise<TwitchGameDetail | null> {
+    const normalizedGameId = String(gameId).trim();
+    if (!normalizedGameId) {
+      return null;
+    }
+
+    const searchParams = new URLSearchParams();
+    searchParams.set('id', normalizedGameId);
+    const response = await this.helixGet<TwitchApiResponse<TwitchGame>>('/games', searchParams);
+    const game = response.data[0];
+
+    if (!game) {
+      return null;
+    }
+
+    return {
+      gameId: game.id,
+      name: game.name,
+      boxArtUrl: normalizeTwitchBoxArtUrl(game.box_art_url),
+      directoryUrl: toDirectoryUrl(game.name),
     };
   }
 

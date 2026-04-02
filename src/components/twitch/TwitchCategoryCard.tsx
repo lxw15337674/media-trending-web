@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -13,7 +14,7 @@ interface TwitchCategoryCardProps {
 export function TwitchCategoryCard({ name, boxArtUrl, href, rank }: TwitchCategoryCardProps) {
   return (
     <Card className="overflow-hidden rounded-2xl border-zinc-200 bg-white/90 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/85">
-      <a href={href} target="_blank" rel="noreferrer" className="block">
+      <Link href={href} className="block">
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
           {boxArtUrl ? (
             <Image
@@ -35,7 +36,7 @@ export function TwitchCategoryCard({ name, boxArtUrl, href, rank }: TwitchCatego
         <CardContent className="p-4">
           <div className="line-clamp-2 text-base font-semibold leading-6 text-zinc-950 dark:text-zinc-50">{name}</div>
         </CardContent>
-      </a>
+      </Link>
     </Card>
   );
 }

@@ -1,9 +1,10 @@
 import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 import type { SearchParamsInput } from '@/lib/server/search-params';
+import { readSearchParamRaw } from '@/lib/server/search-params';
 import { classifyRuntimeError, logServerError } from '@/lib/server/runtime-error';
 import { TwitchHelixClient } from './client';
-import type { TwitchTopCategoryItem, TwitchTopStreamItem } from './types';
+import type { TwitchGameDetail, TwitchTopCategoryItem, TwitchTopStreamItem } from './types';
 
 export type TwitchLiveSort = 'viewers' | 'started';
 
@@ -25,6 +26,15 @@ export interface TwitchCategoriesPageData {
   locale: Locale;
   fetchedAt: string;
   items: TwitchTopCategoryItem[];
+  errorMessage?: string | null;
+}
+
+export interface TwitchGamePageData {
+  locale: Locale;
+  fetchedAt: string;
+  game: TwitchGameDetail | null;
+  items: TwitchTopStreamItem[];
+  languages: TwitchLiveFilterOption[];
   errorMessage?: string | null;
 }
 
@@ -163,6 +173,71 @@ export async function buildTwitchCategoriesPageData(locale: Locale): Promise<Twi
       locale,
       fetchedAt: fallbackNow,
       items: [],
+      errorMessage,
+    };
+  }
+}
+
+export async function buildTwitchGamePageData(
+  gameId: string,
+  rawSearchParams: SearchParamsInput,
+  locale: Locale,
+): Promise<TwitchGamePageData> {
+  const t = getMessages(locale).twitchGame;
+  const fallbackNow = new Date().toISOString();
+  const requestedLanguage = normalizeTwitchLiveLanguage(readSearchParamRaw(rawSearchParams, 'language'));
+
+  try {
+    const client = createTwitchClient();
+    const game = await client.getGameById(gameId);
+
+    if (!game) {
+      return {
+        locale,
+        fetchedAt: fallbackNow,
+        game: null,
+        items: [],
+        languages: [],
+        errorMessage: t.errorNotFound,
+      };
+    }
+
+    const result = await client.listTopStreams({
+      pageSize: 100,
+      pages: 1,
+      gameIds: [gameId],
+      language: requestedLanguage === 'all' ? undefined : requestedLanguage,
+    });
+
+    return {
+      locale,
+      fetchedAt: result.fetchedAt,
+      game,
+      items: result.items,
+      languages: buildLanguageFilterOptions(result.items),
+    };
+  } catch (error) {
+    logServerError('twitch/game-page-data', error);
+    let errorMessage = t.errorLoad;
+    if (isMissingTwitchEnvError(error)) {
+      errorMessage = t.errorNoApiEnv;
+    } else {
+      const category = classifyRuntimeError(error);
+      if (category === 'auth') {
+        errorMessage = t.errorAuth;
+      } else if (category === 'network' || category === 'query_failed') {
+        errorMessage = t.errorQueryFailed;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+    }
+
+    return {
+      locale,
+      fetchedAt: fallbackNow,
+      game: null,
+      items: [],
+      languages: [],
       errorMessage,
     };
   }

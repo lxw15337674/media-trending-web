@@ -31,7 +31,7 @@ export function TwitchCategoriesGridPage({ initialData, jsonLd }: TwitchCategori
               key={item.gameId}
               name={item.name}
               boxArtUrl={item.boxArtUrl}
-              href={item.directoryUrl}
+              href={`/${initialData.locale}/twitch-games/${item.gameId}`}
               rank={index + 1}
             />
           ))}

@@ -4,6 +4,7 @@ import { getIntlLocale } from '@/i18n/locale-meta';
 import { buildLocaleAlternates } from '@/lib/seo/locale-alternates';
 import { toAbsoluteUrl } from '@/lib/seo/site-origin';
 import type { YouTubeHotQueryItem } from '@/lib/youtube-hot/types';
+import type { YouTubeHotCategoryPageConfig } from './category-pages';
 
 function buildAbsoluteUrl(pathname: string) {
   return toAbsoluteUrl(pathname);
@@ -86,6 +87,41 @@ export function buildYouTubeHotMetadata(locale: Locale): Metadata {
   };
 }
 
+export function buildYouTubeHotCategoryMetadata(
+  locale: Locale,
+  categoryPage: YouTubeHotCategoryPageConfig,
+): Metadata {
+  const canonicalPath = `/${locale}/youtube-trending/${categoryPage.slug}`;
+  const absoluteCanonical = buildAbsoluteUrl(canonicalPath);
+
+  return {
+    title: categoryPage.title[locale],
+    description: categoryPage.description[locale],
+    keywords: categoryPage.keywords[locale],
+    alternates: {
+      canonical: absoluteCanonical,
+      languages: buildLocaleAlternates(`/youtube-trending/${categoryPage.slug}`),
+    },
+    openGraph: {
+      type: 'website',
+      url: absoluteCanonical,
+      title: categoryPage.title[locale],
+      description: categoryPage.description[locale],
+      locale: getIntlLocale(locale),
+      siteName: 'Galaxy Trending',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: categoryPage.title[locale],
+      description: categoryPage.description[locale],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
+
 export function buildYouTubeHotJsonLd(locale: Locale, items: YouTubeHotQueryItem[]) {
   const t = resolveMetadataText(locale);
   const itemListElement = items.slice(0, 10).map((item, index) => ({
@@ -106,6 +142,37 @@ export function buildYouTubeHotJsonLd(locale: Locale, items: YouTubeHotQueryItem
     mainEntity: {
       '@type': 'ItemList',
       name: t.title,
+      itemListOrder: 'https://schema.org/ItemListOrderAscending',
+      numberOfItems: itemListElement.length,
+      itemListElement,
+    },
+  };
+}
+
+export function buildYouTubeHotCategoryJsonLd(
+  locale: Locale,
+  categoryPage: YouTubeHotCategoryPageConfig,
+  items: YouTubeHotQueryItem[],
+) {
+  const canonicalPath = `/${locale}/youtube-trending/${categoryPage.slug}`;
+  const itemListElement = items.slice(0, 10).map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.title,
+    url: item.videoUrl,
+  }));
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: categoryPage.title[locale],
+    description: categoryPage.description[locale],
+    url: buildAbsoluteUrl(canonicalPath),
+    inLanguage: getIntlLocale(locale),
+    about: categoryPage.keywords[locale],
+    mainEntity: {
+      '@type': 'ItemList',
+      name: categoryPage.title[locale],
       itemListOrder: 'https://schema.org/ItemListOrderAscending',
       numberOfItems: itemListElement.length,
       itemListElement,
