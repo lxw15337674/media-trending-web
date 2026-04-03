@@ -130,7 +130,13 @@ async function main() {
   }
 
   if (failures.length > 0) {
-    throw new Error(`crawl-google-play-games completed with ${failures.length} failed chart snapshots`);
+    if (successCount === 0) {
+      throw new Error('crawl-google-play-games completed with 0 successful chart snapshots');
+    }
+
+    console.warn(
+      `crawl-google-play-games completed with partial failures: failed=${failures.length} successful=${successCount}`,
+    );
   }
 }
 

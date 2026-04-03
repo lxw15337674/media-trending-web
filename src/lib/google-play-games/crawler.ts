@@ -15,7 +15,12 @@ import {
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 const DEFAULT_WAIT_AFTER_LOAD_MS = 2_000;
+const DEFAULT_WAIT_AFTER_CHART_CLICK_MS = 1_000;
 const DEFAULT_SCROLL_WAIT_MS = 1_000;
+const DEFAULT_CHART_SELECTION_TIMEOUT_MS = 5_000;
+const DEFAULT_CAPTURE_POLL_INTERVAL_MS = 200;
+const TOPPAID_RESPONSE_TIMEOUT_BONUS_MS = 20_000;
+const CHART_TAB_CLICK_ATTEMPTS = 2;
 const DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATHS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -309,10 +314,93 @@ async function waitForCapturedResponse(
       return match;
     }
 
-    await sleep(200);
+    await sleep(DEFAULT_CAPTURE_POLL_INTERVAL_MS);
   }
 
   throw new Error('Timed out waiting for Google Play chart RPC response');
+}
+
+async function waitForChartTabSelection(page: Page, chartTabId: string, timeoutMs: number) {
+  await page
+    .waitForFunction(
+      ({ targetId }) => {
+        const element = document.getElementById(targetId);
+        if (!(element instanceof HTMLElement)) {
+          return false;
+        }
+
+        const selectedStates = [
+          element.getAttribute('aria-selected'),
+          element.getAttribute('aria-pressed'),
+          element.getAttribute('data-selected'),
+          element.dataset.state,
+        ];
+
+        if (selectedStates.some((value) => value === 'true' || value === 'active')) {
+          return true;
+        }
+
+        if (element.tabIndex === 0) {
+          return true;
+        }
+
+        return /\b(active|selected)\b/i.test(element.className);
+      },
+      { targetId: chartTabId },
+      { timeout: timeoutMs },
+    )
+    .catch(() => {});
+}
+
+async function clickChartTab(
+  page: Page,
+  chartTabId: string,
+  clickAttempt: number,
+  timeoutMs: number,
+) {
+  const chartButton = page.locator(`[id="${chartTabId}"]`).first();
+  await chartButton.scrollIntoViewIfNeeded().catch(() => {});
+
+  if (clickAttempt === 1) {
+    await chartButton.click({ timeout: Math.min(timeoutMs, 5_000) });
+  } else {
+    await page.evaluate((targetId) => {
+      const element = document.getElementById(targetId);
+      if (element instanceof HTMLElement) {
+        element.click();
+      }
+    }, chartTabId);
+  }
+
+  await waitForChartTabSelection(page, chartTabId, DEFAULT_CHART_SELECTION_TIMEOUT_MS);
+  await page.waitForTimeout(DEFAULT_WAIT_AFTER_CHART_CLICK_MS);
+}
+
+async function captureChartResponseAfterTabClick(
+  page: Page,
+  chartType: GooglePlayGameChartType,
+  captures: CapturedRpcChartResponse[],
+  timeoutMs: number,
+) {
+  const chartTabId = getChartTabId(chartType);
+  const responseTimeoutMs = chartType === 'toppaid' ? timeoutMs + TOPPAID_RESPONSE_TIMEOUT_BONUS_MS : timeoutMs;
+  let lastError: unknown;
+
+  for (let clickAttempt = 1; clickAttempt <= CHART_TAB_CLICK_ATTEMPTS; clickAttempt += 1) {
+    const responseCountBeforeClick = captures.length;
+
+    try {
+      await clickChartTab(page, chartTabId, clickAttempt, timeoutMs);
+      return await waitForCapturedResponse(captures, responseCountBeforeClick, responseTimeoutMs);
+    } catch (error) {
+      lastError = error;
+      if (clickAttempt >= CHART_TAB_CLICK_ATTEMPTS) {
+        break;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 export class GooglePlayGameChartsCrawler {
@@ -362,10 +450,7 @@ export class GooglePlayGameChartsCrawler {
       if (chartType === 'topfree') {
         capturedResponse = await waitForCapturedResponse(chartResponses, 0, timeoutMs);
       } else {
-        const responseCountBeforeClick = chartResponses.length;
-        const chartButton = page.locator(`[id="${getChartTabId(chartType)}"]`).first();
-        await chartButton.click();
-        capturedResponse = await waitForCapturedResponse(chartResponses, responseCountBeforeClick, timeoutMs);
+        capturedResponse = await captureChartResponseAfterTabClick(page, chartType, chartResponses, timeoutMs);
       }
 
       const items = extractRpcChartItems(capturedResponse.responseText, sourceUrl).slice(0, GOOGLE_PLAY_GAME_PAGE_LIMIT);
