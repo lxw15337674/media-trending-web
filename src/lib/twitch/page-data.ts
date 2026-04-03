@@ -115,7 +115,7 @@ export async function buildTwitchLivePageData(
     };
   } catch (error) {
     logServerError('twitch/live-page-data', error);
-    let errorMessage = t.errorLoad;
+    let errorMessage: string = t.errorLoad;
     if (isMissingTwitchEnvError(error)) {
       errorMessage = t.errorNoApiEnv;
     } else {
@@ -155,7 +155,7 @@ export async function buildTwitchCategoriesPageData(locale: Locale): Promise<Twi
     };
   } catch (error) {
     logServerError('twitch/categories-page-data', error);
-    let errorMessage = t.errorLoad;
+    let errorMessage: string = t.errorLoad;
     if (isMissingTwitchEnvError(error)) {
       errorMessage = t.errorNoApiEnv;
     } else {
@@ -218,7 +218,7 @@ export async function buildTwitchGamePageData(
     };
   } catch (error) {
     logServerError('twitch/game-page-data', error);
-    let errorMessage = t.errorLoad;
+    let errorMessage: string = t.errorLoad;
     if (isMissingTwitchEnvError(error)) {
       errorMessage = t.errorNoApiEnv;
     } else {

@@ -2,7 +2,7 @@ import type { Locale } from '@/i18n/config';
 import { getMessages } from '@/i18n/messages';
 import { resolveStandardPageDataErrorMessage } from '@/lib/page-data/runtime-error-message';
 import type { SearchParamsInput } from '@/lib/server/search-params';
-import { readSearchParamRaw } from '@/lib/server/search-params';
+import { readSearchParamFirst } from '@/lib/server/search-params';
 import { logServerError } from '@/lib/server/runtime-error';
 import { getAppStoreGameCountryName } from './countries';
 import { getLatestAppStoreGameChartSnapshot, listAppStoreGameChartTypes, listLatestAppStoreGameCountries } from './db';
@@ -48,7 +48,7 @@ export async function buildAppStoreGamesPageData(
     chartType,
     chartLabel: buildChartLabel(locale, chartType),
   }));
-  const requestedCountry = normalizeAppStoreGameCountryCode(readSearchParamRaw(rawSearchParams, 'country'));
+  const requestedCountry = normalizeAppStoreGameCountryCode(readSearchParamFirst(rawSearchParams, 'country'));
 
   try {
     const countries = await listLatestAppStoreGameCountries(APP_STORE_GAME_CHART_TYPE_FREE);

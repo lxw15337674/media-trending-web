@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: LocaleLayoutProps): Promise<M
       template: `%s | ${homeMessages.metadataTitle}`,
     },
     description: homeMessages.metadataDescription,
-    keywords: homeMessages.metadataKeywords,
+    keywords: [...homeMessages.metadataKeywords],
   };
 }
 

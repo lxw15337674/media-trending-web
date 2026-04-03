@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type { LaunchOptions } from 'playwright-core';
 import { chromium } from 'playwright-core';
 
@@ -37,14 +38,13 @@ function findBrowserExecutablePath(customPath?: string | null): string | undefin
     return envPath;
   }
 
-  const fs = require('fs');
   if (process.platform === 'win32') {
     return DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATH;
   }
 
   if (process.platform === 'darwin') {
     for (const path of DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS) {
-      if (fs.existsSync(path)) {
+      if (existsSync(path)) {
         return path;
       }
     }
@@ -52,7 +52,7 @@ function findBrowserExecutablePath(customPath?: string | null): string | undefin
 
   if (process.platform === 'linux') {
     for (const path of DEFAULT_LINUX_BROWSER_EXECUTABLE_PATHS) {
-      if (fs.existsSync(path)) {
+      if (existsSync(path)) {
         return path;
       }
     }

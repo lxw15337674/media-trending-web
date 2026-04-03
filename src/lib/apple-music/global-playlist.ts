@@ -76,6 +76,11 @@ interface ExtractionAttempt {
   items: AppleMusicChartItem[];
 }
 
+interface ExtractionSelection {
+  method: AppleMusicGlobalPlaylistExtractionMethod;
+  items: AppleMusicChartItem[];
+}
+
 export interface AppleMusicGlobalPlaylistTrackSummary {
   rank: number;
   title: string;
@@ -713,7 +718,7 @@ async function extractDomTracks(page: Page, selector: 'track-lockup' | 'song-lin
   return buildChartItems(result);
 }
 
-function selectBestExtraction(attempts: ExtractionAttempt[]) {
+function selectBestExtraction(attempts: ExtractionAttempt[]): ExtractionSelection {
   const exactMatch = attempts.find((attempt) => attempt.items.length === 100);
   if (exactMatch) {
     return exactMatch;
@@ -830,8 +835,8 @@ async function collectPageResult(page: Page): Promise<CollectPageResult> {
     { method: 'serialized-data', items: serializedItems },
     { method: 'song-links', items: songLinkItems },
   ]);
-  const selectedMethod = selection.method === 'none' ? 'none' : selection.method;
-  const selectedItems = selection.method === 'none' ? [] : selection.items;
+  const selectedMethod = selection.method;
+  const selectedItems = selection.items;
   const playlistIdFoundAnywhere =
     finalUrl.includes(APPLE_MUSIC_GLOBAL_PLAYLIST_ID) ||
     (canonicalUrl ?? '').includes(APPLE_MUSIC_GLOBAL_PLAYLIST_ID) ||

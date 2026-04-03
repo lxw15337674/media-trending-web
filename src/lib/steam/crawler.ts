@@ -16,6 +16,10 @@ const DEFAULT_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 async function fetchSteamHtmlViaPowerShell(url: string) {
   return await new Promise<string>((resolve, reject) => {
     const command = [
@@ -120,7 +124,7 @@ function parseTopSellers(html: string): SteamChartItem[] {
   const blocks = html.match(/<a\b[^>]*class="search_result_row[^"]*"[^>]*>[\s\S]*?<\/a>/gi) ?? [];
 
   return blocks
-    .map((block, index) => {
+    .map<SteamChartItem | null>((block, index) => {
       const { steamItemId, steamAppId } = parseSteamIdentity(block);
       const steamUrl = decodeHtmlEntities(extractFirstMatch(block, /href="([^"]+)"/i) ?? '');
       const gameName = normalizeText(extractFirstMatch(block, /<span class="title">([\s\S]*?)<\/span>/i));
@@ -161,14 +165,14 @@ function parseTopSellers(html: string): SteamChartItem[] {
         },
       } satisfies SteamChartItem;
     })
-    .filter((item): item is SteamChartItem => item !== null);
+    .filter(isNonNull);
 }
 
 function parseMostPlayed(html: string): SteamChartItem[] {
   const blocks = html.match(/<tr class="player_count_row"[\s\S]*?<\/tr>/gi) ?? [];
 
   return blocks
-    .map((block, index) => {
+    .map<SteamChartItem | null>((block, index) => {
       const counts = extractAllMatches(block, /<span[^>]*class="currentServers"[^>]*>([\s\S]*?)<\/span>/gi).map((value) =>
         parseInteger(normalizeText(value)),
       );
@@ -201,7 +205,7 @@ function parseMostPlayed(html: string): SteamChartItem[] {
         },
       } satisfies SteamChartItem;
     })
-    .filter((item): item is SteamChartItem => item !== null);
+    .filter(isNonNull);
 }
 
 function getTrendingSectionHtml(html: string) {
@@ -219,7 +223,7 @@ function parseTrending(html: string): SteamChartItem[] {
   const blocks = sectionHtml.match(/<a\b[^>]*class="tab_item[^"]*"[^>]*>[\s\S]*?<\/a>/gi) ?? [];
 
   return blocks
-    .map((block, index) => {
+    .map<SteamChartItem | null>((block, index) => {
       const { steamItemId, steamAppId } = parseSteamIdentity(block);
       const steamUrl = decodeHtmlEntities(extractFirstMatch(block, /href="([^"]+)"/i) ?? '');
       const gameName = normalizeText(extractFirstMatch(block, /<div class="tab_item_name">([\s\S]*?)<\/div>/i));
@@ -262,7 +266,7 @@ function parseTrending(html: string): SteamChartItem[] {
         },
       } satisfies SteamChartItem;
     })
-    .filter((item): item is SteamChartItem => item !== null);
+    .filter(isNonNull);
 }
 
 function parseChartItems(chartType: SteamChartType, html: string) {

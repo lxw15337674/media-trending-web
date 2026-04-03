@@ -27,8 +27,8 @@ export function buildMusicMetadata(
   };
 
   const chartName = chartLabels[chartType];
-  let title = `${messages.title} - ${chartName}`;
-  let description = messages.description;
+  let title: string = `${messages.title} - ${chartName}`;
+  let description: string = messages.description;
 
   if (countryCode !== 'global' && countryName) {
     title = `${title} (${countryName})`;

@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext, type Page, type Response } from 'playwright-core';
+import type { Browser, BrowserContext, Page, Response } from 'playwright-core';
 import { createPlaywrightBrowser } from '@/lib/crawler/playwright-factory';
 import { resolveSpotifyStorageState } from './storage-state';
 import { getSpotifyCountryName, getSpotifyCountrySlug, normalizeSpotifyCountryCode } from './countries';
@@ -27,6 +27,22 @@ interface SpotifyCrawlerOptions {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
+function buildChartAlias(countryCode: string) {
+  return `regional-${getSpotifyCountrySlug(countryCode)}-daily`;
+}
+
+function buildChartPageUrl(countryCode: string) {
+  return `${SPOTIFY_CHARTS_BASE_URL}/charts/view/${buildChartAlias(countryCode)}/latest`;
+}
+
+function isLoginPage(url: string) {
+  return /accounts\.spotify\.com\/|\/login(?:[/?#]|$)/i.test(url);
 }
 
 function getString(value: unknown) {
@@ -180,7 +196,7 @@ function resolveChartDate(payload: unknown, fetchedAt: string) {
 
 function mapSpotifyItems(entries: Record<string, unknown>[]) {
   return entries
-    .map((entry, index) => {
+    .map<SpotifyChartItem | null>((entry, index) => {
       const trackMetadata =
         entry.trackMetadata && typeof entry.trackMetadata === 'object' && !Array.isArray(entry.trackMetadata)
           ? (entry.trackMetadata as Record<string, unknown>)
@@ -230,7 +246,7 @@ function mapSpotifyItems(entries: Record<string, unknown>[]) {
         rawItem: entry,
       } satisfies SpotifyChartItem;
     })
-    .filter((item): item is SpotifyChartItem => item !== null)
+    .filter(isNonNull)
     .sort((left, right) => left.rank - right.rank);
 }
 

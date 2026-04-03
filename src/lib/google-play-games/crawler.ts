@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page, type Response } from 'playwright-core';
+import type { Browser, BrowserContext, Page, Response } from 'playwright-core';
 import { createPlaywrightBrowser } from '@/lib/crawler/playwright-factory';
 import { getGooglePlayGameCountryName } from './countries';
 import type {
@@ -55,34 +55,8 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function resolveBrowserExecutablePath(explicitPath?: string | null) {
-  const normalizedExplicitPath = explicitPath?.trim();
-  if (normalizedExplicitPath) {
-    return normalizedExplicitPath;
-  }
-
-  const candidates =
-    process.platform === 'win32'
-      ? DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATHS
-      : process.platform === 'darwin'
-        ? DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS
-        : DEFAULT_LINUX_BROWSER_EXECUTABLE_PATHS;
-
-  return candidates.find((candidate) => existsSync(candidate));
-}
-
-function getLaunchOptions(options: GooglePlayGameCrawlerOptions): LaunchOptions {
-  const executablePath = resolveBrowserExecutablePath(options.browserExecutablePath);
-  const launchOptions: LaunchOptions = {
-    headless: options.headless ?? true,
-    args: ['--disable-blink-features=AutomationControlled'],
-  };
-
-  if (executablePath) {
-    launchOptions.executablePath = executablePath;
-  }
-
-  return launchOptions;
+function getArrayItem(value: unknown, index: number) {
+  return Array.isArray(value) ? value[index] : undefined;
 }
 
 function mapExtractedItem(item: ExtractedGooglePlayGameChartItem): GooglePlayGameChartItem | null {
@@ -147,13 +121,13 @@ function parseRpcPayload(responseText: string) {
   }
 
   try {
-    const outerPayload = JSON.parse(payloadLine) as unknown[];
-    const innerPayloadText = outerPayload?.[0]?.[2];
+    const outerPayload = JSON.parse(payloadLine) as unknown;
+    const innerPayloadText = getArrayItem(getArrayItem(outerPayload, 0), 2);
     if (typeof innerPayloadText !== 'string') {
       return null;
     }
 
-    return JSON.parse(innerPayloadText) as unknown[];
+    return JSON.parse(innerPayloadText) as unknown;
   } catch {
     return null;
   }
@@ -187,7 +161,16 @@ function extractGenreTokens(rawMeta: unknown) {
 
 function extractRpcChartItems(responseText: string, sourceUrl: string) {
   const parsedPayload = parseRpcPayload(responseText);
-  const rawEntries = parsedPayload?.[0]?.[1]?.[0]?.[28]?.[0];
+  const rawEntries = getArrayItem(
+    getArrayItem(
+      getArrayItem(
+        getArrayItem(getArrayItem(parsedPayload, 0), 1),
+        0,
+      ),
+      28,
+    ),
+    0,
+  );
   if (!Array.isArray(rawEntries)) {
     return [];
   }

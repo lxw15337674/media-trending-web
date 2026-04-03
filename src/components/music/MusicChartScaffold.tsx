@@ -24,6 +24,23 @@ interface MusicChartScaffoldProps extends MusicPageData {
 
 const PAGE_SECTION_CLASS = 'mx-auto w-full px-4 pt-6 md:px-6 md:pt-8 lg:w-[80%]';
 
+function getRegionLabel(
+  regionDisplayNames: Intl.DisplayNames | null,
+  countryCode: string,
+  fallbackLabel: string,
+) {
+  const normalizedCode = countryCode.trim().toUpperCase();
+  if (!regionDisplayNames || !normalizedCode) {
+    return fallbackLabel;
+  }
+
+  try {
+    return regionDisplayNames.of(normalizedCode) ?? fallbackLabel;
+  } catch {
+    return fallbackLabel;
+  }
+}
+
 export function MusicChartScaffold({
   locale,
   chartType,
@@ -98,7 +115,7 @@ export function MusicChartScaffold({
         label:
           item.countryCode === 'global'
             ? t.cardGlobal
-            : regionDisplayNames[item.countryCode.toLowerCase()] ?? item.countryName,
+            : getRegionLabel(regionDisplayNames, item.countryCode, item.countryName),
         keywords: [item.countryCode, item.countryName],
       }));
     } else if (chartType === 'apple-music') {

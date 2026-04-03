@@ -1,4 +1,3 @@
-import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
 import { dedupeItemsByRank } from './snapshot-utils';
 import { createSnapshotCache } from './snapshot-cache';
@@ -49,7 +48,7 @@ export async function saveSnapshotWithTransaction<TSnapshot extends {
     );
   }
 
-  const snapshotId = await db.transaction(async (tx) => {
+  const snapshotId = await db.transaction(async () => {
     return await config.upsertSnapshot(snapshot, items);
   });
 
@@ -102,4 +101,3 @@ export function createSnapshotSaver<TSnapshot extends {
     clearCache: cache.clear,
   };
 }
-
