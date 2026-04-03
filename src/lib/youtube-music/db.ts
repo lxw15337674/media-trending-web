@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
 import { toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { dedupeItemsByRank } from '@/lib/db/snapshot-utils';
+import { createSnapshotCache } from '@/lib/db/snapshot-cache';
 import type {
   YouTubeMusicChartItem,
   YouTubeMusicChartSnapshotWithItems,
@@ -38,27 +40,13 @@ interface ItemRow {
   rawItemJson: string | null;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let latestSnapshotCache:
-  | {
-      expiresAt: number;
-      key: string;
-      data: YouTubeMusicChartSnapshotWithItems | null;
-    }
-  | null = null;
-
-function clearCache() {
-  latestSnapshotCache = null;
-}
-
-function getCacheHit() {
-  if (!latestSnapshotCache) return null;
-  if (Date.now() > latestSnapshotCache.expiresAt) return null;
-  return latestSnapshotCache;
-}
+const snapshotCache = createSnapshotCache<
+  string,
+  YouTubeMusicChartSnapshotWithItems
+>();
 
 export async function saveYouTubeMusicWeeklyTopSongsSnapshot(snapshot: YouTubeMusicWeeklyChartSnapshot) {
-  const { items, duplicateCount } = dedupeYouTubeMusicItemsByRank(snapshot.items);
+  const { items, duplicateCount } = dedupeItemsByRank(snapshot.items);
   if (duplicateCount > 0) {
     console.warn(
       `[youtube-music] deduped ${duplicateCount} weekly items for ${snapshot.countryCode} ${snapshot.chartEndDate}`,
@@ -155,7 +143,7 @@ export async function saveYouTubeMusicWeeklyTopSongsSnapshot(snapshot: YouTubeMu
     return newSnapshotId;
   });
 
-  clearCache();
+  snapshotCache.clear();
   return snapshotId;
 }
 
@@ -186,8 +174,8 @@ export async function getLatestYouTubeMusicWeeklyTopSongsSnapshot(
   const normalizedCountryCode =
     countryCodeInput.trim().toLowerCase() === 'global' ? 'global' : countryCodeInput.trim().toUpperCase();
   const cacheKey = `tracks|weekly|${normalizedCountryCode}`;
-  const cached = getCacheHit();
-  if (cached && cached.key === cacheKey) return cached.data;
+  const cached = snapshotCache.get(cacheKey);
+  if (cached !== undefined) return cached;
 
   const snapshots = await db.all<SnapshotRow>(sql`
     SELECT
@@ -208,7 +196,7 @@ export async function getLatestYouTubeMusicWeeklyTopSongsSnapshot(
 
   const snapshot = snapshots[0];
   if (!snapshot) {
-    latestSnapshotCache = { key: cacheKey, data: null, expiresAt: Date.now() + CACHE_TTL_MS };
+    snapshotCache.set(cacheKey, null);
     return null;
   }
 
@@ -256,6 +244,6 @@ export async function getLatestYouTubeMusicWeeklyTopSongsSnapshot(
     items,
   };
 
-  latestSnapshotCache = { key: cacheKey, data, expiresAt: Date.now() + CACHE_TTL_MS };
+  snapshotCache.set(cacheKey, data);
   return data;
 }

@@ -18,6 +18,8 @@ interface CliOptions {
   regions: string[] | null;
 }
 
+const YOUTUBE_HOT_BATCH_INTERVAL_HOURS = 6;
+
 function parsePositiveNumber(value: string | undefined, fallback: number, min: number, max: number) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -40,13 +42,29 @@ function parseRegionList(value: string | undefined) {
   return regions.length ? regions : null;
 }
 
+function normalizeBatchSnapshotHour(snapshotHour: string) {
+  const parsed = parseSnapshotHour(snapshotHour);
+  if (!parsed) {
+    return null;
+  }
+
+  const hour = Number(parsed.slice(11, 13));
+  if (!Number.isFinite(hour)) {
+    return null;
+  }
+
+  const normalizedHour = Math.floor(hour / YOUTUBE_HOT_BATCH_INTERVAL_HOURS) * YOUTUBE_HOT_BATCH_INTERVAL_HOURS;
+  return `${parsed.slice(0, 11)}${String(normalizedHour).padStart(2, '0')}:00:00`;
+}
+
 function parseCliArgs(): CliOptions {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const noRetry = args.includes('--no-retry');
 
   const hourArg = args.find((arg) => arg.startsWith('--hour='))?.split('=')[1];
-  const snapshotHour = hourArg ? parseSnapshotHour(hourArg) : toSnapshotHour();
+  const resolvedSnapshotHour = hourArg ? parseSnapshotHour(hourArg) : toSnapshotHour();
+  const snapshotHour = resolvedSnapshotHour ? normalizeBatchSnapshotHour(resolvedSnapshotHour) : null;
   if (!snapshotHour) {
     throw new Error('Invalid --hour format. Example: --hour=2026-03-23 11:00:00');
   }

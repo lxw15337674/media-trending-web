@@ -115,7 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: toAbsoluteUrl(`/${locale}/youtube-trending`),
       lastModified: trendingLastModified,
-      changeFrequency: 'hourly' as const,
+      changeFrequency: 'daily' as const,
       priority: locale === 'en' ? 1 : 0.9,
     },
     {

@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
 import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page, type Response } from 'playwright-core';
+import { createPlaywrightBrowser } from '@/lib/crawler/playwright-factory';
 import { getGooglePlayGameCountryName } from './countries';
 import type {
   GooglePlayGameChartItem,
@@ -21,23 +21,6 @@ const DEFAULT_CHART_SELECTION_TIMEOUT_MS = 5_000;
 const DEFAULT_CAPTURE_POLL_INTERVAL_MS = 200;
 const TOPPAID_RESPONSE_TIMEOUT_BONUS_MS = 20_000;
 const CHART_TAB_CLICK_ATTEMPTS = 2;
-const DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATHS = [
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-] as const;
-const DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-] as const;
-const DEFAULT_LINUX_BROWSER_EXECUTABLE_PATHS = [
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-  '/usr/bin/microsoft-edge',
-] as const;
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36';
 
@@ -414,7 +397,11 @@ export class GooglePlayGameChartsCrawler {
       return { browser: this.browser, context: this.context };
     }
 
-    this.browser = await chromium.launch(getLaunchOptions(this.options));
+    this.browser = await createPlaywrightBrowser({
+      headless: this.options.headless,
+      timeoutMs: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      browserExecutablePath: this.options.browserExecutablePath,
+    });
     this.context = await this.browser.newContext({
       locale: 'en-US',
       viewport: { width: 1440, height: 2000 },

@@ -1,3 +1,5 @@
+import { normalizeCountryCode, getCountryName, getCountryCodeAliases, getCountrySlug, getRegionCode } from '@/lib/countries/utils';
+
 const APPLE_MUSIC_COUNTRY_SLUG_TO_CANONICAL_CODE: Record<string, string> = {
   argentina: 'AR',
   australia: 'AU',
@@ -55,64 +57,27 @@ export const APPLE_MUSIC_KNOWN_COUNTRY_CODES = Object.freeze(
 );
 
 export function normalizeAppleMusicCountryCode(value: string | null | undefined) {
-  const rawValue = String(value ?? '').trim();
-  if (!rawValue) return 'global';
-  if (rawValue.toLowerCase() === 'global') return 'global';
-
-  const lowerValue = rawValue.toLowerCase();
-  const canonicalFromSlug = APPLE_MUSIC_COUNTRY_SLUG_TO_CANONICAL_CODE[lowerValue];
-  if (canonicalFromSlug) {
-    return canonicalFromSlug;
-  }
-
-  if (/^[A-Za-z]{2}$/.test(rawValue)) {
-    return rawValue.toUpperCase();
-  }
-
-  return lowerValue;
+  return normalizeCountryCode(value, 'global');
 }
 
 export function getAppleMusicCountrySlug(value: string | null | undefined) {
   const normalizedCountryCode = normalizeAppleMusicCountryCode(value);
-  if (normalizedCountryCode === 'global') {
-    return 'global';
-  }
-
-  return APPLE_MUSIC_CANONICAL_CODE_TO_COUNTRY_SLUG[normalizedCountryCode] ?? null;
+  return getCountrySlug(normalizedCountryCode, 'global', APPLE_MUSIC_CANONICAL_CODE_TO_COUNTRY_SLUG);
 }
 
 export function getAppleMusicCountryRegionCode(value: string | null | undefined) {
   const normalizedCountryCode = normalizeAppleMusicCountryCode(value);
-  if (normalizedCountryCode === 'global') {
-    return null;
-  }
-
-  return /^[A-Z]{2}$/.test(normalizedCountryCode) ? normalizedCountryCode : null;
+  return getRegionCode(normalizedCountryCode, 'global');
 }
 
 export function getAppleMusicCountryCodeAliases(value: string | null | undefined) {
   const normalizedCountryCode = normalizeAppleMusicCountryCode(value);
-  if (normalizedCountryCode === 'global') {
-    return ['global'];
-  }
-
-  const aliases = new Set<string>([normalizedCountryCode]);
   const slug = getAppleMusicCountrySlug(normalizedCountryCode);
-  if (slug) {
-    aliases.add(slug);
-  }
-
-  return Array.from(aliases);
+  return getCountryCodeAliases(normalizedCountryCode, slug);
 }
 
 export function getAppleMusicCountryName(value: string | null | undefined, locale = 'en') {
   const regionCode = getAppleMusicCountryRegionCode(value);
   if (!regionCode) return null;
-
-  try {
-    const displayNames = new Intl.DisplayNames([locale], { type: 'region' });
-    return displayNames.of(regionCode) ?? regionCode;
-  } catch {
-    return regionCode;
-  }
+  return getCountryName(regionCode, locale);
 }

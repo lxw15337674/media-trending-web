@@ -2,18 +2,18 @@ name:  YouTube Trending Crawl
 
 on:
   schedule:
-    - cron: '5 */2 * * *'
+    - cron: '5 */6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: youtube-trending-crawl-bihourly
+  group: youtube-trending-crawl-sixhourly
   cancel-in-progress: false
 
 jobs:
-  crawl-bihourly:
+  crawl-sixhourly:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

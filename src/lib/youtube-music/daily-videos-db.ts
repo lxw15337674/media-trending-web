@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
 import { toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { dedupeItemsByRank } from '@/lib/db/snapshot-utils';
+import { createSnapshotCache } from '@/lib/db/snapshot-cache';
 import type {
   YouTubeMusicCountryOption,
   YouTubeMusicDailyVideoItem,
@@ -39,25 +41,17 @@ interface ItemRow {
   rawItemJson: string | null;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let latestSnapshotCache:
-  | {
-      expiresAt: number;
-      countryCode: string;
-      data: YouTubeMusicDailyVideoSnapshotWithItems | null;
-    }
-  | null = null;
-
-function clearCache() {
-  latestSnapshotCache = null;
-}
+const snapshotCache = createSnapshotCache<
+  string,
+  YouTubeMusicDailyVideoSnapshotWithItems
+>();
 
 function normalizeCountryCode(countryCodeInput: string) {
   return countryCodeInput.trim().toLowerCase() === 'global' ? 'global' : countryCodeInput.trim().toUpperCase();
 }
 
 export async function saveYouTubeMusicDailyVideosSnapshot(snapshot: YouTubeMusicDailyVideoSnapshot) {
-  const { items, duplicateCount } = dedupeYouTubeMusicItemsByRank(snapshot.items);
+  const { items, duplicateCount } = dedupeItemsByRank(snapshot.items);
   if (duplicateCount > 0) {
     console.warn(
       `[youtube-music] deduped ${duplicateCount} top-videos-daily items for ${snapshot.countryCode} ${snapshot.chartEndDate}`,
@@ -156,7 +150,7 @@ export async function saveYouTubeMusicDailyVideosSnapshot(snapshot: YouTubeMusic
     return newSnapshotId;
   });
 
-  clearCache();
+  snapshotCache.clear();
   return snapshotId;
 }
 
@@ -185,8 +179,9 @@ export async function getLatestYouTubeMusicDailyVideosSnapshot(
   countryCodeInput: string,
 ): Promise<YouTubeMusicDailyVideoSnapshotWithItems | null> {
   const countryCode = normalizeCountryCode(countryCodeInput);
-  if (latestSnapshotCache && latestSnapshotCache.countryCode === countryCode && Date.now() <= latestSnapshotCache.expiresAt) {
-    return latestSnapshotCache.data;
+  const cached = snapshotCache.get(countryCode);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const snapshots = await db.all<SnapshotRow>(sql`
@@ -206,7 +201,7 @@ export async function getLatestYouTubeMusicDailyVideosSnapshot(
 
   const snapshot = snapshots[0];
   if (!snapshot) {
-    latestSnapshotCache = { countryCode, data: null, expiresAt: Date.now() + CACHE_TTL_MS };
+    snapshotCache.set(countryCode, null);
     return null;
   }
 
@@ -258,6 +253,6 @@ export async function getLatestYouTubeMusicDailyVideosSnapshot(
     items,
   };
 
-  latestSnapshotCache = { countryCode, data, expiresAt: Date.now() + CACHE_TTL_MS };
+  snapshotCache.set(countryCode, data);
   return data;
 }

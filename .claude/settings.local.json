@@ -7,7 +7,11 @@
       "Bash(ls:*)",
       "Bash(pnpm run:*)",
       "Bash(pnpm --silent run db:inspect)",
-      "Bash(pnpm tsx:*)"
+      "Bash(pnpm tsx:*)",
+      "Bash(gh pr:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(ping:*)",
+      "Bash(node:*)"
     ]
   }
 }

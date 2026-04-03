@@ -72,7 +72,7 @@ const messages = {
     },
     youtubeHot: {
       metadataTitle: 'YouTube 视频榜',
-      metadataDescription: '按小时更新的 YouTube Trending 视频榜，支持地区和分类筛选。',
+      metadataDescription: '每 6 小时更新一次的 YouTube Trending 视频榜，支持地区和分类筛选。',
       title: 'YouTube 视频榜',
       filterRegionLabel: '地区',
       filterRegionPlaceholder: '地区',

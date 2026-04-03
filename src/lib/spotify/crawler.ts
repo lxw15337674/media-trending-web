@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { chromium, type Browser, type BrowserContext, type LaunchOptions, type Page, type Response } from 'playwright-core';
+import { chromium, type Browser, type BrowserContext, type Page, type Response } from 'playwright-core';
+import { createPlaywrightBrowser } from '@/lib/crawler/playwright-factory';
 import { resolveSpotifyStorageState } from './storage-state';
 import { getSpotifyCountryName, getSpotifyCountrySlug, normalizeSpotifyCountryCode } from './countries';
 import {
@@ -12,20 +12,9 @@ import {
 } from './types';
 
 const CHART_RESPONSE_PREFIX = 'https://charts-spotify-com-service.spotify.com/auth/v0/charts/';
-const DEFAULT_TIMEOUT_MS = 45_000;
-const DEFAULT_WAIT_AFTER_LOAD_MS = 1_500;
-const DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-] as const;
-const DEFAULT_LINUX_BROWSER_EXECUTABLE_PATHS = [
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-] as const;
-const DEFAULT_USER_AGENT =
+export const DEFAULT_TIMEOUT_MS = 45_000;
+export const DEFAULT_WAIT_AFTER_LOAD_MS = 1_500;
+export const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36';
 
 interface SpotifyCrawlerOptions {
@@ -245,56 +234,16 @@ function mapSpotifyItems(entries: Record<string, unknown>[]) {
     .sort((left, right) => left.rank - right.rank);
 }
 
-function resolveBrowserExecutablePath(explicitPath?: string | null) {
-  const normalizedExplicitPath = explicitPath?.trim();
-  if (normalizedExplicitPath) {
-    return normalizedExplicitPath;
-  }
-
-  const candidates =
-    process.platform === 'win32'
-      ? [DEFAULT_WINDOWS_BROWSER_EXECUTABLE_PATH]
-      : process.platform === 'darwin'
-        ? DEFAULT_DARWIN_BROWSER_EXECUTABLE_PATHS
-        : DEFAULT_LINUX_BROWSER_EXECUTABLE_PATHS;
-
-  return candidates.find((candidate) => existsSync(candidate));
-}
-
-function getLaunchOptions(options: SpotifyCrawlerOptions): LaunchOptions {
-  const executablePath = resolveBrowserExecutablePath(options.browserExecutablePath);
-  const launchOptions: LaunchOptions = {
-    headless: options.headless ?? true,
-    args: ['--disable-blink-features=AutomationControlled'],
-  };
-
-  if (executablePath) {
-    launchOptions.executablePath = executablePath;
-  }
-
-  return launchOptions;
-}
-
-function buildChartAlias(countryCodeInput: string) {
-  const countryCode = normalizeSpotifyCountryCode(countryCodeInput);
-  const slug = getSpotifyCountrySlug(countryCode);
-  return `regional-${slug}-daily`;
-}
-
-function buildChartPageUrl(countryCodeInput: string) {
-  return `${SPOTIFY_CHARTS_BASE_URL}/charts/view/${buildChartAlias(countryCodeInput)}/latest`;
-}
-
-function isLoginPage(url: string) {
-  return /\/home(?:[/?#]|$)/i.test(url);
-}
-
 async function openContext(options: SpotifyCrawlerOptions): Promise<{ browser: Browser; context: BrowserContext }> {
   const storageState = await resolveSpotifyStorageState({
     adminApiKey: options.adminApiKey,
     subject: 'spotify charts',
   });
-  const browser = await chromium.launch(getLaunchOptions(options));
+  const browser = await createPlaywrightBrowser({
+    headless: options.headless,
+    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    browserExecutablePath: options.browserExecutablePath,
+  });
 
   try {
     const context = await browser.newContext({

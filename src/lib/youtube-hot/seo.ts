@@ -14,7 +14,7 @@ const YOUTUBE_HOT_METADATA_TEXT: Record<Locale, { title: string; description: st
   en: {
     title: 'YouTube Trending Videos',
     description:
-      'Track the latest YouTube trending videos across regions with structured category filters and hourly refreshed snapshots.',
+      'Track the latest YouTube trending videos across regions with structured category filters and snapshots refreshed every 6 hours.',
     keywords: [
       'youtube trending',
       'youtube trending videos',
@@ -25,13 +25,13 @@ const YOUTUBE_HOT_METADATA_TEXT: Record<Locale, { title: string; description: st
   },
   zh: {
     title: 'YouTube Trending 视频榜',
-    description: '按小时更新的 YouTube Trending 视频榜，支持地区和分类筛选，始终展示最近一次成功抓取结果。',
+    description: '每 6 小时更新一次的 YouTube Trending 视频榜，支持地区和分类筛选，始终展示最近一次成功抓取结果。',
     keywords: ['youtube trending', 'youtube trending 视频', 'youtube 热门视频', 'YouTube 视频榜', 'YouTube 分类榜单'],
   },
   es: {
     title: 'Videos en Tendencia de YouTube',
     description:
-      'Sigue los videos en tendencia de YouTube por región con filtros por categoría y capturas actualizadas cada hora.',
+      'Sigue los videos en tendencia de YouTube por región con filtros por categoría y capturas actualizadas cada 6 horas.',
     keywords: [
       'videos en tendencia de youtube',
       'ranking youtube tendencia',
@@ -42,7 +42,7 @@ const YOUTUBE_HOT_METADATA_TEXT: Record<Locale, { title: string; description: st
   },
   ja: {
     title: 'YouTube急上昇動画',
-    description: '地域別の最新 YouTube 急上昇動画を、カテゴリフィルタと毎時更新のスナップショットで追跡できます。',
+    description: '地域別の最新 YouTube 急上昇動画を、カテゴリフィルタと6時間ごとに更新されるスナップショットで追跡できます。',
     keywords: ['youtube 急上昇', 'youtube トレンド動画', 'youtube 動画ランキング', 'youtube 人気動画', 'youtube カテゴリランキング'],
   },
 };

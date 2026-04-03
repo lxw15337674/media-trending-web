@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
 import { toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { dedupeItemsByRank } from '@/lib/db/snapshot-utils';
+import { createSnapshotCache } from '@/lib/db/snapshot-cache';
 import {
   getAppleMusicCountryCodeAliases,
   normalizeAppleMusicCountryCode,
@@ -57,31 +59,17 @@ interface ItemRow {
   rawItemJson: string | null;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let latestSnapshotCache:
-  | {
-      expiresAt: number;
-      key: string;
-      data: AppleMusicTopSongsSnapshotWithItems | null;
-    }
-  | null = null;
-
-function clearCache() {
-  latestSnapshotCache = null;
-}
-
-function getCacheHit() {
-  if (!latestSnapshotCache) return null;
-  if (Date.now() > latestSnapshotCache.expiresAt) return null;
-  return latestSnapshotCache;
-}
+const snapshotCache = createSnapshotCache<
+  string,
+  AppleMusicTopSongsSnapshotWithItems
+>();
 
 function normalizeCountryCode(value: string) {
   return normalizeAppleMusicCountryCode(value);
 }
 
 export async function saveAppleMusicTopSongsSnapshot(snapshot: AppleMusicTopSongsSnapshot) {
-  const { items, duplicateCount } = dedupeAppleMusicItemsByRank(snapshot.items);
+  const { items, duplicateCount } = dedupeItemsByRank(snapshot.items);
   if (duplicateCount > 0) {
     console.warn(`[apple-music] deduped ${duplicateCount} items for ${snapshot.countryCode} ${snapshot.chartEndDate}`);
   }
@@ -181,7 +169,7 @@ export async function saveAppleMusicTopSongsSnapshot(snapshot: AppleMusicTopSong
     return newSnapshotId;
   });
 
-  clearCache();
+  snapshotCache.clear();
   return snapshotId;
 }
 
@@ -238,8 +226,8 @@ export async function getLatestAppleMusicTopSongsSnapshot(
 ): Promise<AppleMusicTopSongsSnapshotWithItems | null> {
   const normalizedCountryCode = normalizeCountryCode(countryCodeInput);
   const cacheKey = `tracks|daily|${normalizedCountryCode}`;
-  const cached = getCacheHit();
-  if (cached && cached.key === cacheKey) return cached.data;
+  const cached = snapshotCache.get(cacheKey);
+  if (cached !== undefined) return cached;
 
   const aliases = getAppleMusicCountryCodeAliases(normalizedCountryCode);
   const aliasSql = sql.join(aliases.map((value) => sql`${value}`), sql`, `);
@@ -274,7 +262,7 @@ export async function getLatestAppleMusicTopSongsSnapshot(
 
   const snapshot = snapshots[0];
   if (!snapshot) {
-    latestSnapshotCache = { key: cacheKey, data: null, expiresAt: Date.now() + CACHE_TTL_MS };
+    snapshotCache.set(cacheKey, null);
     return null;
   }
 
@@ -320,6 +308,6 @@ export async function getLatestAppleMusicTopSongsSnapshot(
     items,
   };
 
-  latestSnapshotCache = { key: cacheKey, data, expiresAt: Date.now() + CACHE_TTL_MS };
+  snapshotCache.set(cacheKey, data);
   return data;
 }

@@ -1,17 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db/index';
 import { toJson, toNullableNumber, toNumber } from '@/lib/db/codec';
+import { createSnapshotCache } from '@/lib/db/snapshot-cache';
 import type {
   YouTubeMusicChartItem,
   YouTubeMusicChartSnapshotWithItems,
   YouTubeMusicCountryOption,
   YouTubeMusicShortsSongDailySnapshot,
 } from './types';
-import { dedupeYouTubeMusicItemsByRank } from './save-utils';
-
-interface SnapshotIdRow {
-  id: number;
-}
 
 interface SnapshotRow {
   id: number;
@@ -36,25 +32,17 @@ interface ItemRow {
   rawItemJson: string | null;
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let latestSnapshotCache:
-  | {
-      expiresAt: number;
-      countryCode: string;
-      data: YouTubeMusicChartSnapshotWithItems | null;
-    }
-  | null = null;
-
-function clearCache() {
-  latestSnapshotCache = null;
-}
+const snapshotCache = createSnapshotCache<
+  string,
+  YouTubeMusicChartSnapshotWithItems
+>();
 
 function normalizeCountryCode(countryCodeInput: string) {
   return countryCodeInput.trim().toLowerCase() === 'global' ? 'global' : countryCodeInput.trim().toUpperCase();
 }
 
 export async function saveYouTubeMusicDailyShortsSongsSnapshot(snapshot: YouTubeMusicShortsSongDailySnapshot) {
-  const { items, duplicateCount } = dedupeYouTubeMusicItemsByRank(snapshot.items);
+  const { items, duplicateCount } = (await import('@/lib/db/snapshot-utils')).dedupeItemsByRank(snapshot.items);
   if (duplicateCount > 0) {
     console.warn(
       `[youtube-music] deduped ${duplicateCount} shorts-songs-daily items for ${snapshot.countryCode} ${snapshot.chartEndDate}`,
@@ -62,7 +50,7 @@ export async function saveYouTubeMusicDailyShortsSongsSnapshot(snapshot: YouTube
   }
 
   const snapshotId = await db.transaction(async (tx) => {
-    const rows = await tx.all<SnapshotIdRow>(sql`
+    const rows = await tx.all<{ id: number }>(sql`
       INSERT INTO youtube_music_shorts_song_daily_snapshots (
         country_code,
         country_name,
@@ -147,7 +135,7 @@ export async function saveYouTubeMusicDailyShortsSongsSnapshot(snapshot: YouTube
     return newSnapshotId;
   });
 
-  clearCache();
+  snapshotCache.clear();
   return snapshotId;
 }
 
@@ -176,8 +164,9 @@ export async function getLatestYouTubeMusicDailyShortsSongsSnapshot(
   countryCodeInput: string,
 ): Promise<YouTubeMusicChartSnapshotWithItems | null> {
   const countryCode = normalizeCountryCode(countryCodeInput);
-  if (latestSnapshotCache && latestSnapshotCache.countryCode === countryCode && Date.now() <= latestSnapshotCache.expiresAt) {
-    return latestSnapshotCache.data;
+  const cached = snapshotCache.get(countryCode);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const snapshots = await db.all<SnapshotRow>(sql`
@@ -197,7 +186,7 @@ export async function getLatestYouTubeMusicDailyShortsSongsSnapshot(
 
   const snapshot = snapshots[0];
   if (!snapshot) {
-    latestSnapshotCache = { countryCode, data: null, expiresAt: Date.now() + CACHE_TTL_MS };
+    snapshotCache.set(countryCode, null);
     return null;
   }
 
@@ -245,6 +234,6 @@ export async function getLatestYouTubeMusicDailyShortsSongsSnapshot(
     items,
   };
 
-  latestSnapshotCache = { countryCode, data, expiresAt: Date.now() + CACHE_TTL_MS };
+  snapshotCache.set(countryCode, data);
   return data;
 }

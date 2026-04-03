@@ -1,3 +1,4 @@
+import { normalizeCountryCode, getCountryName, getCountryCodeAliases } from '@/lib/countries/utils';
 import {
   DEFAULT_SPOTIFY_TOP_SONGS_COUNTRY_CODES,
   SPOTIFY_GLOBAL_COUNTRY_CODE,
@@ -13,11 +14,7 @@ export const SPOTIFY_KNOWN_COUNTRY_CODES = Object.freeze(
 );
 
 export function normalizeSpotifyCountryCode(value: string | null | undefined) {
-  const rawValue = String(value ?? '').trim();
-  if (!rawValue) return SPOTIFY_GLOBAL_COUNTRY_CODE;
-  if (rawValue.toLowerCase() === SPOTIFY_GLOBAL_COUNTRY_CODE) return SPOTIFY_GLOBAL_COUNTRY_CODE;
-  if (/^[A-Za-z]{2}$/.test(rawValue)) return rawValue.toUpperCase();
-  return rawValue.toLowerCase();
+  return normalizeCountryCode(value, SPOTIFY_GLOBAL_COUNTRY_CODE);
 }
 
 export function getSpotifyCountrySlug(value: string | null | undefined) {
@@ -26,7 +23,7 @@ export function getSpotifyCountrySlug(value: string | null | undefined) {
 }
 
 export function getSpotifyCountryCodeAliases(value: string | null | undefined) {
-  return [normalizeSpotifyCountryCode(value)];
+  return getCountryCodeAliases(normalizeSpotifyCountryCode(value), null);
 }
 
 export function getSpotifyCountryName(value: string | null | undefined, locale = 'en') {
@@ -34,11 +31,5 @@ export function getSpotifyCountryName(value: string | null | undefined, locale =
   if (normalized === SPOTIFY_GLOBAL_COUNTRY_CODE) {
     return SPOTIFY_GLOBAL_COUNTRY_NAME;
   }
-
-  try {
-    const displayNames = new Intl.DisplayNames([locale], { type: 'region' });
-    return displayNames.of(normalized) ?? normalized;
-  } catch {
-    return normalized;
-  }
+  return getCountryName(normalized, locale);
 }
